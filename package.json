@@ -1,0 +1,27 @@
+{
+  "name": "@big-data-processor/task-adapter-base",
+  "version": "0.8.8",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "jsdoc -c jsdoc.json ./index.js ./README.md"
+  },
+  "author": "Chi Yang",
+  "license": "MIT",
+  "dependencies": {
+    "@big-data-processor/default-filters": "^0.8.5",
+    "@big-data-processor/utilities": "^0.8.7",
+    "byte-converter": "^0.1.4",
+    "dashify": "^2.0.0",
+    "figlet": "^1.5.0",
+    "js-yaml": "^3.14.0",
+    "nunjucks": "^3.2.2",
+    "queue": "^6.0.1",
+    "uniqid": "^5.2.0"
+  },
+  "devDependencies": {
+    "docdash": "^1.2.0",
+    "jsdoc": "^3.6.5"
+  }
+}

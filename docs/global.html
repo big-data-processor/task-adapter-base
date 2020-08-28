@@ -1,0 +1,2259 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    
+    <meta charset="utf-8">
+    <title>Global - Documentation</title>
+    
+    
+    <script src="scripts/prettify/prettify.js"></script>
+    <script src="scripts/prettify/lang-css.js"></script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc.css">
+    <script src="scripts/nav.js" defer></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body>
+
+<input type="checkbox" id="nav-trigger" class="nav-trigger" />
+<label for="nav-trigger" class="navicon-button x">
+  <div class="navicon"></div>
+</label>
+
+<label for="nav-trigger" class="overlay"></label>
+
+<nav >
+    
+    <input type="text" id="nav-search" placeholder="Search" />
+    
+    <h2><a href="index.html">Home</a></h2><h2><a href="https://github.com/big-data-processor/task-adapter-base" target="_blank" class="menu-item" id="github-repo" >Github Repo</a></h2><h3>Classes</h3><ul><li><a href="BdpTaskAdapter.html">BdpTaskAdapter</a><ul class='methods'><li data-type='method'><a href="BdpTaskAdapter.html#._addTasks">_addTasks</a></li><li data-type='method'><a href="BdpTaskAdapter.html#._checkStatus">_checkStatus</a></li><li data-type='method'><a href="BdpTaskAdapter.html#._loadProcessIndex">_loadProcessIndex</a></li><li data-type='method'><a href="BdpTaskAdapter.html#._monitorTasks">_monitorTasks</a></li><li data-type='method'><a href="BdpTaskAdapter.html#._parseRecipe">_parseRecipe</a></li><li data-type='method'><a href="BdpTaskAdapter.html#._processAfterExitCallback">_processAfterExitCallback</a></li><li data-type='method'><a href="BdpTaskAdapter.html#._processBeforeExitCallback">_processBeforeExitCallback</a></li><li data-type='method'><a href="BdpTaskAdapter.html#._resumeRemoteTasks">_resumeRemoteTasks</a></li><li data-type='method'><a href="BdpTaskAdapter.html#._runProcess">_runProcess</a></li><li data-type='method'><a href="BdpTaskAdapter.html#._runTasks">_runTasks</a></li><li data-type='method'><a href="BdpTaskAdapter.html#._setOptions">_setOptions</a></li><li data-type='method'><a href="BdpTaskAdapter.html#._waitingJobStatus">_waitingJobStatus</a></li><li data-type='method'><a href="BdpTaskAdapter.html#._writeTaskLogs">_writeTaskLogs</a></li><li data-type='method'><a href="BdpTaskAdapter.html#.beforeExit">beforeExit</a></li><li data-type='method'><a href="BdpTaskAdapter.html#.beforeStart">beforeStart</a></li><li data-type='method'><a href="BdpTaskAdapter.html#.detectJobStatus">detectJobStatus</a></li><li data-type='method'><a href="BdpTaskAdapter.html#.initialize">initialize</a></li><li data-type='method'><a href="BdpTaskAdapter.html#.printStatus">printStatus</a></li><li data-type='method'><a href="BdpTaskAdapter.html#.processExitCallback">processExitCallback</a></li><li data-type='method'><a href="BdpTaskAdapter.html#.processSpawn">processSpawn</a></li><li data-type='method'><a href="BdpTaskAdapter.html#.taskOverrides">taskOverrides</a></li></ul></li><li></li></ul><h3>Global</h3><ul><li><a href="global.html#AdapterOption">AdapterOption</a></li><li><a href="global.html#BatchStatus">BatchStatus</a></li><li><a href="global.html#FileHandler">FileHandler</a></li><li><a href="global.html#globalReadlineInterface">globalReadlineInterface</a></li><li><a href="global.html#ProcessExit">ProcessExit</a></li><li><a href="global.html#ProcessRunning">ProcessRunning</a></li><li><a href="global.html#TaskDefinition">TaskDefinition</a></li></ul>
+</nav>
+
+<div id="main">
+    
+    <h1 class="page-title">Global</h1>
+    
+
+    
+
+
+
+
+<section>
+
+<header>
+    
+        <h2>
+        
+        </h2>
+        
+    
+</header>
+
+<article>
+    
+        <div class="container-overview">
+        
+            
+
+<dl class="details">
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+            
+
+            
+        
+        </div>
+    
+
+    
+
+    
+
+    
+    
+    
+
+     
+
+    
+
+    
+        <h3 class="subsection-title">Members</h3>
+
+        
+            
+<h4 class="name" id="globalReadlineInterface"><span class="type-signature"></span>globalReadlineInterface<span class="type-signature"></span></h4>
+
+
+
+
+
+<dl class="details">
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="index.js.html">index.js</a>, <a href="index.js.html#line24">line 24</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+
+<div class="description usertext">
+    <p>Internal variables</p>
+</div>
+
+
+
+
+
+
+
+
+        
+    
+
+    
+
+    
+        <h3 class="subsection-title">Type Definitions</h3>
+
+        
+                
+<h4 class="name" id="AdapterOption">AdapterOption</h4>
+
+
+
+
+
+<dl class="details">
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="index.js.html">index.js</a>, <a href="index.js.html#line51">line 51</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+    <h5 class="subsection-title">Properties:</h5>
+
+    
+
+<table class="props">
+    <thead>
+    <tr>
+        
+        <th>Name</th>
+        
+
+        <th>Type</th>
+
+        
+
+        
+
+        <th class="last">Description</th>
+    </tr>
+    </thead>
+
+    <tbody>
+    
+
+        <tr>
+            
+                <td class="name"><code>adapter</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">string</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last"><p>The adapter name (Default = 'docker')</p></td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>cpu</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">number</span>
+|
+
+<span class="param-type">string</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last"><p>The required cpu cores (might have different meanings, e.g. vcpus; Default = 1)</p></td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>mem</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">string</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last"><p>The memory size (Default = '4g')</p></td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>nodes</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">number</span>
+|
+
+<span class="param-type">string</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last"><p>The computing node number</p></td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>concurrency</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">number</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last"><p>The concurrency number. If your runtime environment does not support parallel computing such as PBS. Setting to a smaller number is preferred (Default = 1).</p></td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>batch</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">boolean</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last"><p>If set to true, the standard output/error will be hidden in the standard output/error of the process. Instead, a job counter of BatchStatus will be shown.</p></td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>updateInterval</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">number</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last"><p>The interval in milliseconds to check the job status. Setting an appropriate number to prevent checking jobs too often or too long. The interval counter starts after each checking process. (Default = 30000).</p></td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>stdoeMode</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">string</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last"><p>Specifies the ways to monitor job status and recording stdout/stderr..</p></td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>dockerPath</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">path</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last"></td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>projectFolder</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">path</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last"><p>This project folder stores the users' data.</p></td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>packageFolder</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">path</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last"><p>This package folder stores the package files.</p></td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>taskLogFolder</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">path</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last"><p>This folder stores the task runtime logs.</p></td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>sharedFolder</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">path</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last"></td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>extFolders</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">Array.&lt;path></span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last"><p>Additional folders that may be required to mount to containers.</p></td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>cwd</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">path</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last"><p>The current working directory for the adapter process.</p></td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>workdir</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">path</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last"><p>The working directory of the in-container process.</p></td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>simplifiedTitle</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">boolean</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last"><p>Set to true if you do not want to print the fancy Bio-Data Processor wellcome title.</p></td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>setUser</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">boolean</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last"><p>Used to specify if the user id and group id, e.g. '--user uid: gid' for docker adapter.</p></td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>debug</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">boolean</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last"><p>true/false. When debug is set to true, the adapter can display additional messages about running processes.</p></td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>env</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">Object</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last"><p>Setting environment variables.</p></td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>stopOnError</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">boolean</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last"><p>Set to true if you want to stop all other jobs when one of the jobs have errors. (Default = false)</p></td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>delayInterval</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">number</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last"><p>The interval in milliseconds between job submissions. This delay time is set to avoid submitting too many jobs in a short time.</p></td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>forceRerun</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">boolean</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last"><p>Ignore the job exitCode and re-run jobs anyway.</p></td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>...</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">*</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last"><p>Additional options can be provided for different requirements of adapters.</p></td>
+        </tr>
+
+    
+    </tbody>
+</table>
+
+
+
+
+
+
+<div class="description usertext">
+    <p>The option object</p>
+</div>
+
+
+
+    <h5>Type:</h5>
+    <ul>
+        <li>
+            
+<span class="param-type">Object</span>
+
+
+        </li>
+    </ul>
+
+
+
+
+
+
+            
+                
+<h4 class="name" id="BatchStatus">BatchStatus</h4>
+
+
+
+
+
+<dl class="details">
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="index.js.html">index.js</a>, <a href="index.js.html#line109">line 109</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+    <h5 class="subsection-title">Properties:</h5>
+
+    
+
+<table class="props">
+    <thead>
+    <tr>
+        
+        <th>Name</th>
+        
+
+        <th>Type</th>
+
+        
+
+        
+
+        <th class="last">Description</th>
+    </tr>
+    </thead>
+
+    <tbody>
+    
+
+        <tr>
+            
+                <td class="name"><code>pending</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">number</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last"></td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>queued</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">number</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last"></td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>running</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">number</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last"></td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>finishing</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">number</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last"></td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>exit</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">number</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last"></td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>done</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">number</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last"></td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>total</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">number</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last"></td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>others</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">array</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last"></td>
+        </tr>
+
+    
+    </tbody>
+</table>
+
+
+
+
+
+
+
+
+    <h5>Type:</h5>
+    <ul>
+        <li>
+            
+<span class="param-type">Object</span>
+
+
+        </li>
+    </ul>
+
+
+
+
+
+
+            
+                
+<h4 class="name" id="FileHandler">FileHandler</h4>
+
+
+
+
+
+<dl class="details">
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="index.js.html">index.js</a>, <a href="index.js.html#line98">line 98</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+    <h5 class="subsection-title">Properties:</h5>
+
+    
+
+<table class="props">
+    <thead>
+    <tr>
+        
+        <th>Name</th>
+        
+
+        <th>Type</th>
+
+        
+
+        
+
+        <th class="last">Description</th>
+    </tr>
+    </thead>
+
+    <tbody>
+    
+
+        <tr>
+            
+                <td class="name"><code>stdoutFS</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">stream</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last"></td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>stderrFS</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">stream</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last"></td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>stdoeWatcher</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">*</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last"><p>an object returned by chokidar.</p></td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>readFileSizes</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">object</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last"><p>An object that stores the sizes of stdout/stderr that the stdoeWatcher has been read.</p>
+                <h6>Properties</h6>
+
+<table class="props">
+    <thead>
+    <tr>
+        
+        <th>Name</th>
+        
+
+        <th>Type</th>
+
+        
+
+        
+
+        <th class="last">Description</th>
+    </tr>
+    </thead>
+
+    <tbody>
+    
+
+        <tr>
+            
+                <td class="name"><code>stdout</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">number</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last"><p>The read sizes of stdout in bytes</p></td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>stderr</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">number</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last"><p>The read sizes  of in bytes</p></td>
+        </tr>
+
+    
+    </tbody>
+</table>
+
+            </td>
+        </tr>
+
+    
+    </tbody>
+</table>
+
+
+
+
+
+
+
+
+    <h5>Type:</h5>
+    <ul>
+        <li>
+            
+<span class="param-type">Object</span>
+
+
+        </li>
+    </ul>
+
+
+
+
+
+
+            
+                
+<h4 class="name" id="ProcessExit">ProcessExit</h4>
+
+
+
+
+
+<dl class="details">
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="index.js.html">index.js</a>, <a href="index.js.html#line82">line 82</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+    <h5 class="subsection-title">Properties:</h5>
+
+    
+
+<table class="props">
+    <thead>
+    <tr>
+        
+        <th>Name</th>
+        
+
+        <th>Type</th>
+
+        
+
+        
+
+        <th class="last">Description</th>
+    </tr>
+    </thead>
+
+    <tbody>
+    
+
+        <tr>
+            
+                <td class="name"><code>exitCode</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">number</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last"><p>The process exit code</p></td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>signal</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">string</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last"><p>The SIGNAL to terminate the process; default is null.</p></td>
+        </tr>
+
+    
+    </tbody>
+</table>
+
+
+
+
+
+
+
+
+    <h5>Type:</h5>
+    <ul>
+        <li>
+            
+<span class="param-type">Object</span>
+
+
+        </li>
+    </ul>
+
+
+
+
+
+
+            
+                
+<h4 class="name" id="ProcessRunning">ProcessRunning</h4>
+
+
+
+
+
+<dl class="details">
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="index.js.html">index.js</a>, <a href="index.js.html#line89">line 89</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+    <h5 class="subsection-title">Properties:</h5>
+
+    
+
+<table class="props">
+    <thead>
+    <tr>
+        
+        <th>Name</th>
+        
+
+        <th>Type</th>
+
+        
+
+        
+
+        <th class="last">Description</th>
+    </tr>
+    </thead>
+
+    <tbody>
+    
+
+        <tr>
+            
+                <td class="name"><code>jobID</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">string</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last"></td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>stdoutStream</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">stream</span>
+|
+
+<span class="param-type">number</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last"><p>Only used in the stdoeMode === 'pipe'; if in the stdoeMode of 'watch', it is used as an object storing the stream loading progress in bytes.</p></td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>stderrStream</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">stream</span>
+|
+
+<span class="param-type">number</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last"><p>Only used in the stdoeMode === 'pipe'; if in the stdoeMode of 'watch', it is used as an object storing the stream loading progress in bytes.</p></td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>taskEmitter</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">eventemitter</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last"><p>This event emitter emits 'finish' or 'error' events when the process is finished or has errors, respectively.</p></td>
+        </tr>
+
+    
+    </tbody>
+</table>
+
+
+
+
+
+
+
+
+    <h5>Type:</h5>
+    <ul>
+        <li>
+            
+<span class="param-type">Object</span>
+
+
+        </li>
+    </ul>
+
+
+
+
+
+
+            
+                
+<h4 class="name" id="TaskDefinition">TaskDefinition</h4>
+
+
+
+
+
+<dl class="details">
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="index.js.html">index.js</a>, <a href="index.js.html#line28">line 28</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+    <h5 class="subsection-title">Properties:</h5>
+
+    
+
+<table class="props">
+    <thead>
+    <tr>
+        
+        <th>Name</th>
+        
+
+        <th>Type</th>
+
+        
+
+        
+
+        <th class="last">Description</th>
+    </tr>
+    </thead>
+
+    <tbody>
+    
+
+        <tr>
+            
+                <td class="name"><code>taskName</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">string</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last"><p>The task name in the task definitions</p></td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>taskID</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">string</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last"><p>The auto-generated unique id which has the taskName</p></td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>pid</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">string</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last"><p>The jobID that is generated from task executors. (e.g. pid, pbs job ID, ...)</p></td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>image</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">string</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last"><p>The image name in the task definitions</p></td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>exec</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">string</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last"><p>The executable/command for the task in a container</p></td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>args</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">array</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last"><p>The resolved task arguments in the task definitions (These arguments were prepared for different run-time environments).</p></td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>command</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">string</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last"><p>The executed command for display only.</p></td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>start</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">number</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last"><p>The task start timestamp in milliseconds since midnight 01, Jan, 1970 UTC</p></td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>end</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">number</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last"><p>The task start timestamp in milliseconds since midnight 01, Jan, 1970 UTC</p></td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>stdout</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">path</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last"><p>The file path for standard output</p></td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>stderr</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">path</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last"><p>The file path for standard error</p></td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>cpus</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">number</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last"><p>Used for different runtime environments; It depends on the runtime environments; Might have different meanings.</p></td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>mem</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">string</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last"><p>Used for different runtime environements; It depends on the runtime environments; Might have different meanings.</p></td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>nodes</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">number</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last"><p>Used for different runtime environements; Might not be used if the adapter only send a task to one single computing node;</p></td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>exitCode</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">number</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last"><p>The exit code after process exit;</p></td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>taskArgs</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">array</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last"><p>The arguments before transforming into the runtime arguments. Different adapters will form taskArgs into different runtime arguments, e.g. the docker adapter will make the command begins with <code>docker run ...</code>, while the pbs adapter starts with <code>qsub ...</code>.</p></td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>option</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type"><a href="global.html#AdapterOption">AdapterOption</a></span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last"><p>Additional options that initiate the adapter.</p></td>
+        </tr>
+
+    
+    </tbody>
+</table>
+
+
+
+
+
+
+<div class="description usertext">
+    <p>This the format that we store for each task item.</p>
+</div>
+
+
+
+    <h5>Type:</h5>
+    <ul>
+        <li>
+            
+<span class="param-type">Object</span>
+
+
+        </li>
+    </ul>
+
+
+
+
+
+
+            
+    
+
+    
+</article>
+
+</section>
+
+
+
+
+    
+    
+</div>
+
+<br class="clear">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc3/jsdoc">JSDoc 3.6.5</a> on Fri Aug 28 2020 12:26:12 GMT+0800 (台北標準時間) using the <a href="https://github.com/clenemt/docdash">docdash</a> theme.
+</footer>
+
+<script>prettyPrint();</script>
+<script src="scripts/polyfill.js"></script>
+<script src="scripts/linenumber.js"></script>
+
+<script src="scripts/search.js" defer></script>
+
+
+
+</body>
+</html>

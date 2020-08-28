@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    
+    <meta charset="utf-8">
+    <title>Home - Documentation</title>
+    
+    
+    <script src="scripts/prettify/prettify.js"></script>
+    <script src="scripts/prettify/lang-css.js"></script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc.css">
+    <script src="scripts/nav.js" defer></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body>
+
+<input type="checkbox" id="nav-trigger" class="nav-trigger" />
+<label for="nav-trigger" class="navicon-button x">
+  <div class="navicon"></div>
+</label>
+
+<label for="nav-trigger" class="overlay"></label>
+
+<nav >
+    
+    <input type="text" id="nav-search" placeholder="Search" />
+    
+    <h2><a href="index.html">Home</a></h2><h2><a href="https://github.com/big-data-processor/task-adapter-base" target="_blank" class="menu-item" id="github-repo" >Github Repo</a></h2><h3>Classes</h3><ul><li><a href="BdpTaskAdapter.html">BdpTaskAdapter</a><ul class='methods'><li data-type='method'><a href="BdpTaskAdapter.html#._addTasks">_addTasks</a></li><li data-type='method'><a href="BdpTaskAdapter.html#._checkStatus">_checkStatus</a></li><li data-type='method'><a href="BdpTaskAdapter.html#._loadProcessIndex">_loadProcessIndex</a></li><li data-type='method'><a href="BdpTaskAdapter.html#._monitorTasks">_monitorTasks</a></li><li data-type='method'><a href="BdpTaskAdapter.html#._parseRecipe">_parseRecipe</a></li><li data-type='method'><a href="BdpTaskAdapter.html#._processAfterExitCallback">_processAfterExitCallback</a></li><li data-type='method'><a href="BdpTaskAdapter.html#._processBeforeExitCallback">_processBeforeExitCallback</a></li><li data-type='method'><a href="BdpTaskAdapter.html#._resumeRemoteTasks">_resumeRemoteTasks</a></li><li data-type='method'><a href="BdpTaskAdapter.html#._runProcess">_runProcess</a></li><li data-type='method'><a href="BdpTaskAdapter.html#._runTasks">_runTasks</a></li><li data-type='method'><a href="BdpTaskAdapter.html#._setOptions">_setOptions</a></li><li data-type='method'><a href="BdpTaskAdapter.html#._waitingJobStatus">_waitingJobStatus</a></li><li data-type='method'><a href="BdpTaskAdapter.html#._writeTaskLogs">_writeTaskLogs</a></li><li data-type='method'><a href="BdpTaskAdapter.html#.beforeExit">beforeExit</a></li><li data-type='method'><a href="BdpTaskAdapter.html#.beforeStart">beforeStart</a></li><li data-type='method'><a href="BdpTaskAdapter.html#.detectJobStatus">detectJobStatus</a></li><li data-type='method'><a href="BdpTaskAdapter.html#.initialize">initialize</a></li><li data-type='method'><a href="BdpTaskAdapter.html#.printStatus">printStatus</a></li><li data-type='method'><a href="BdpTaskAdapter.html#.processExitCallback">processExitCallback</a></li><li data-type='method'><a href="BdpTaskAdapter.html#.processSpawn">processSpawn</a></li><li data-type='method'><a href="BdpTaskAdapter.html#.taskOverrides">taskOverrides</a></li></ul></li><li></li></ul><h3>Global</h3><ul><li><a href="global.html#AdapterOption">AdapterOption</a></li><li><a href="global.html#BatchStatus">BatchStatus</a></li><li><a href="global.html#FileHandler">FileHandler</a></li><li><a href="global.html#globalReadlineInterface">globalReadlineInterface</a></li><li><a href="global.html#ProcessExit">ProcessExit</a></li><li><a href="global.html#ProcessRunning">ProcessRunning</a></li><li><a href="global.html#TaskDefinition">TaskDefinition</a></li></ul>
+</nav>
+
+<div id="main">
+    
+
+    
+
+
+
+    
+
+
+    <section class="package">
+        <h3> </h3>		
+    </section>
+
+
+
+
+
+
+
+
+
+    
+
+
+
+    <section class="readme usertext">
+        <article><h1>A base class of Task Adapter of Big Data Processor.</h1>
+<hr>
+<h2>Basics</h2>
+<p>This is a base class for developers to extend and implment for different computing resources.</p>
+<h2>Task Adapter</h2>
+<p>The Task Adapter is a core component in the Big Data Processor.
+Task Adpater processes are spawned when a Task is executed on Big Data Processor.
+As shown in the following figure, adapter processes mange to deploy and monitor jobs on local or remote computing resources.</p>
+<div align='center'>
+    <img src="https://raw.githubusercontent.com/big-data-processor/assets/master/images/System%20Architecture.png" width="600"><br>
+    <b>System Architecture of Big Data Processor</b>
+</div>
+<h2>What does a Task Adapter do?</h2>
+<p>An adapter process does the following things.</p>
+<ol>
+<li>
+<p>Organizing task arguments and form job commands</p>
+<p>Different runtime environments have different command patterns. For example, if you use task-adapter-docker which execute the job with the <code>docker run ...</code> pattern.
+If you use a pbs scheduling system, the job submission pattern may be looked like <code>qsub ...</code>.</p>
+</li>
+<li>
+<p>Scheduling jobs</p>
+<p>The adapter has a queue to schedule multiple jobs. There is a concurrency option to specify the concurrent job numbers and the adapter will try to maintiain the concurrency.</p>
+</li>
+<li>
+<p>Monitoring job states</p>
+<p>There are two modes for an adapter to monitor job status and it depends on the runtime environments. It specifies the ways to monitor job status and recording stdout/stderr.
+For the <code>pipe</code> stdoeMode, the job process is spawned locally and the message is directly pipe to the adpater process. The job status is directly known by the adapter process.
+For the <code>watch</code> stdoeMode, the job is executed remotely and the job status needs to be fetched. The adapter process retrieves the job status periodically. The interval is set by the <code>updateInterval</code> option.</p>
+</li>
+<li>
+<p>Recording job messages such as the stdout and stderr</p>
+<p>In order to allow viewing job messages in real-time, the adapter reports the latest job messages to Big Data Processor.An adapter process captures job messages (stdout/stderr) based on the above mentioned modes. All jobs are organized well by the adapter.
+Developers can customize different ways to captures the job messages or logs for different runtime environments.</p>
+</li>
+<li>
+<p>Resuming job executions</p>
+<p>An adapter process logs the progres of each job. If one of the jobs failed, the adapter process fails in the end.
+If developers fixes their scripts or fixes task settings, it is very easy to rerun the adapter process on Big Data Processor.
+The adapter process will try to resume unfinished jobs.</p>
+</li>
+</ol>
+<p>Overall, the workflow procedure of an adapter is shown in the following figure.</p>
+<div align='center'>
+    <img src="https://raw.githubusercontent.com/big-data-processor/assets/master/images/Adapter-Flowchart.png" width="600"><br>
+    <b>The procedure of an Adapter process</b>
+</div>
+<h1>License</h1>
+<p>Licensed under the MIT license (see the <a href="https://github.com/big-data-processor/task-adapter-base/blob/master/LICENSE" target=_blank>license</a>)</p></article>
+    </section>
+
+
+
+
+
+
+    
+    
+</div>
+
+<br class="clear">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc3/jsdoc">JSDoc 3.6.5</a> on Fri Aug 28 2020 12:26:12 GMT+0800 (台北標準時間) using the <a href="https://github.com/clenemt/docdash">docdash</a> theme.
+</footer>
+
+<script>prettyPrint();</script>
+<script src="scripts/polyfill.js"></script>
+<script src="scripts/linenumber.js"></script>
+
+<script src="scripts/search.js" defer></script>
+
+
+
+</body>
+</html>
