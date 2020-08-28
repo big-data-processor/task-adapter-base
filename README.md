@@ -1,9 +1,6 @@
 # A base class of Task Adapter Big Data Processor.
 ---
-## Basics
-
 This is a base class for developers to extend and implment for different computing resources.
-
 
 ## Task Adapter
 The Task Adapter is a core component in the Big Data Processor.
