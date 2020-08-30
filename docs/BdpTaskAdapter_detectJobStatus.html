@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    
+    <meta charset="utf-8">
+    <title>detectJobStatus - Documentation</title>
+    
+    
+    <script src="scripts/prettify/prettify.js"></script>
+    <script src="scripts/prettify/lang-css.js"></script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc.css">
+    <script src="scripts/nav.js" defer></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body>
+
+<input type="checkbox" id="nav-trigger" class="nav-trigger" />
+<label for="nav-trigger" class="navicon-button x">
+  <div class="navicon"></div>
+</label>
+
+<label for="nav-trigger" class="overlay"></label>
+
+<nav >
+    
+    <input type="text" id="nav-search" placeholder="Search" />
+    
+    <h2><a href="index.html">Home</a></h2><h2><a href="https://github.com/big-data-processor/task-adapter-base" target="_blank" class="menu-item" id="github-repo" >Github Repo</a></h2><h3>Classes</h3><ul><li><a href="BdpTaskAdapter.html">BdpTaskAdapter</a><ul class='methods'><li data-type='method'><a href="BdpTaskAdapter.html#._addTasks">_addTasks</a></li><li data-type='method'><a href="BdpTaskAdapter.html#._checkStatus">_checkStatus</a></li><li data-type='method'><a href="BdpTaskAdapter.html#._loadProcessIndex">_loadProcessIndex</a></li><li data-type='method'><a href="BdpTaskAdapter.html#._monitorTasks">_monitorTasks</a></li><li data-type='method'><a href="BdpTaskAdapter.html#._parseRecipe">_parseRecipe</a></li><li data-type='method'><a href="BdpTaskAdapter.html#._processAfterExitCallback">_processAfterExitCallback</a></li><li data-type='method'><a href="BdpTaskAdapter.html#._processBeforeExitCallback">_processBeforeExitCallback</a></li><li data-type='method'><a href="BdpTaskAdapter.html#._resumeRemoteTasks">_resumeRemoteTasks</a></li><li data-type='method'><a href="BdpTaskAdapter.html#._runProcess">_runProcess</a></li><li data-type='method'><a href="BdpTaskAdapter.html#._runTasks">_runTasks</a></li><li data-type='method'><a href="BdpTaskAdapter.html#._waitingJobStatus">_waitingJobStatus</a></li><li data-type='method'><a href="BdpTaskAdapter.html#._writeTaskLogs">_writeTaskLogs</a></li><li data-type='method'><a href="BdpTaskAdapter.html#.initialize">initialize</a></li><li data-type='method'><a href="BdpTaskAdapter.html#.printStatus">printStatus</a></li><li data-type='method'><a href="BdpTaskAdapter.html#.processSpawn">processSpawn</a></li><li data-type='method'><a href="BdpTaskAdapter.html#.taskOverrides">taskOverrides</a></li><li data-type='method'><a href="BdpTaskAdapter.html#~_setOptions">_setOptions</a></li></ul></li><li></li></ul><h3>Interfaces</h3><ul><li><a href="BdpTaskAdapter.beforeExit.html">beforeExit</a></li><li><a href="BdpTaskAdapter.processExitCallback.html">processExitCallback</a></li><li><a href="BdpTaskAdapter_beforeStart.html">beforeStart</a></li><li><a href="BdpTaskAdapter_detectJobStatus.html">detectJobStatus</a></li></ul><h3>Global</h3><ul><li><a href="global.html#AdapterOption">AdapterOption</a></li><li><a href="global.html#BatchStatus">BatchStatus</a></li><li><a href="global.html#FileHandler">FileHandler</a></li><li><a href="global.html#globalReadlineInterface">globalReadlineInterface</a></li><li><a href="global.html#ProcessExit">ProcessExit</a></li><li><a href="global.html#ProcessRunning">ProcessRunning</a></li><li><a href="global.html#TaskDefinition">TaskDefinition</a></li></ul>
+</nav>
+
+<div id="main">
+    
+    <h1 class="page-title">detectJobStatus</h1>
+    
+
+    
+
+
+
+
+<section>
+
+<header>
+    
+        <h2>
+            <span class="ancestors"><a href="BdpTaskAdapter.html">BdpTaskAdapter</a>#</span>
+        
+        detectJobStatus
+        </h2>
+        
+    
+</header>
+
+<article>
+    
+        <div class="container-overview">
+        
+            
+
+<dl class="details">
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="index.js.html">index.js</a>, <a href="index.js.html#line260">line 260</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+            
+                <div class="description usertext"><p>Some Jobs may be sent to remote computing resources so the we cannot determine when does
+the <code>this.runningTasks[taskID].taskEmitter</code> emit the finish or error event in the processSpawn function.
+This <code>detectJobStatus</code> function can be implemented to check if the job is finished or has errors. Returns nothing.</p></div>
+            
+
+            
+        
+        </div>
+    
+
+    
+
+    
+
+    
+    
+    
+
+     
+
+    
+
+    
+
+    
+
+    
+
+    
+</article>
+
+</section>
+
+
+
+
+    
+    
+</div>
+
+<br class="clear">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc3/jsdoc">JSDoc 3.6.5</a> on Sun Aug 30 2020 16:20:03 GMT+0800 (台北標準時間) using the <a href="https://github.com/clenemt/docdash">docdash</a> theme.
+</footer>
+
+<script>prettyPrint();</script>
+<script src="scripts/polyfill.js"></script>
+<script src="scripts/linenumber.js"></script>
+
+<script src="scripts/search.js" defer></script>
+
+
+
+</body>
+</html>

@@ -120,9 +120,107 @@ let isStopping;
  */
 
 /**
+ * @typedef TaskAdapterInstance
+ * @type {Object}
+ * @property {function} getOptions use this function to get the `BdpTaskAdapter.options` object.
+ * @property {function} addTasks calls the `BdpTaskAdapter._addTasks` functions to add tasks.
+ * @property {function} run execute tasks and exit the Adapter process.
+ * @property {function} stop stop the queue and calling beforeExit() function.
+ * @property {function} execute This is the main function to execute tasks in Big Data Processor.
+ *                              The adapter process wil not exit after this function. 
+ */
+
+
+/**
+ * @interface IAdapter
+ */
+
+class IAdapter {
+  /**
+   * @async
+   * @function IAdapter#beforeStart
+   * @description An async function that preparing all required resources to run tasks.
+   */
+  async beforeStart() {
+    return false;
+  }
+
+  /**
+   * @async
+   * @function IAdapter#taskOverrides
+   * @param {TaskDefinition} taskObj
+   * @param {string} argumentRecipe The recipe file path to transform the TaskDefinition.taskArgs into runtime arguments.
+   * @return {TaskDefinition}
+   * @description implement this function to overrides the task definitions.
+   * Each implemented adapter should override this function to formulate your command patterns for your computing resources
+   * If you use an argument-recipe yaml file to formulate your runtime arguments, remember to call `super.taskOverrides(argumentRecipe);` inside the implemented version
+   * Also, developers need to change the TaskDefinition.option.mem to an accepted format. The TaskDefinition.option.mem is memory size in bytes.
+   * Use the humanizeMemory filter function (@big-data-processor/utilities.memHumanize) to convert bytes into other formats, e.g. 1000000 to 1MB (or 1m); 1024 to 1KiB.
+   */
+  async taskOverrides(taskObj, argumentRecipe) {
+    // await this._parseRecipe(taskObj, argumentRecipe);
+    return taskObj;
+  }
+
+  /**
+   * @async
+   * @function IAdapter#processSpawn
+   * @param {string} taskID
+   * @description Formuate the commands to spawn
+   * @return {ProcessRunning} a runningTaskObj that at least contains the taskEmitter that emits 'finished' or 'error'
+   * Remember to update taskObj.command
+   */
+  async processSpawn(taskID) {
+    return {
+      jobID: this.taskLogs[taskID].pid, // The id that generted by the task executor (e.g. pid, the jobId from PBS, ...)
+      stdoutStream: null,
+      stderrStream: null,
+      taskEmitter: new EventEmitter()// emit 'finish' or 'error' events
+    };
+  }
+
+  /**
+   * @async
+   * @method IAdapter#processExitCallback
+   * @param {string} taskID The task ID
+   * @param {number} exitCode
+   * @param {string} signal The terminating signals such as SIGTERM, SIGINT if exists. For normal task execution, the signal will be `null`.
+   * @returns {processExit} Process exit object, e.g. {exitCode: 0, signal: null}
+   */
+  async processExitCallback(taskID, exitCode, signal) {
+    return { exitCode: exitCode, signal: signal };
+  }
+
+  
+  /**
+   * @async
+   * @method IAdapter#detectJobStatus
+   * @method 
+   * @description Some Jobs may be sent to remote computing resources so the we cannot determine when does
+   * the `this.runningTasks[taskID].taskEmitter` emit the finish or error event in the processSpawn function.
+   * This `detectJobStatus` function can be implemented to check if the job is finished or has errors. Returns nothing.
+   */
+  async detectJobStatus() {}
+
+  /**
+   * @async
+   * @function IAdapter#beforeExit
+   * @description An async function that cleanup all resources before exit the Adapter process and after all jobs are finished or errored.
+   *
+   */
+  async beforeExit() {}
+}
+
+
+
+
+
+/**
  * @author Chi Yang <chiyang1118@gmail.com>
  * @class BdpTaskAdapter
- * @license MIT
+ * @implements IAdapter
+ * @license 
+ * MIT Licensed
  * Copyright (c) 2020 Chi Yang(楊崎) <chiyang1118@gmail.com>
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -143,7 +241,7 @@ let isStopping;
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-class BdpTaskAdapter {
+class BdpTaskAdapter extends IAdapter {
   /**
    * @constructor
    * @param {AdapterOption} globalOption An option object. See the _setOptions.js for more information.
@@ -153,16 +251,18 @@ class BdpTaskAdapter {
    * Feel free to change your style.
    */
   constructor(globalOption) {
+    super();
     this.options = this._setOptions(globalOption);
     plotTitle(this.options.adapterName || "Customized", this.options.adapterAuthor || "anonymous", !this.options.simplifiedTitle, this.options.titleFontName);
     /**
-     * @member {Object<string, TaskDefinition>} BdpTaskAdapter.taskLogs
-     * @description This is where 
+     * @member {Object<string, TaskDefinition>} BdpTaskAdapter~taskLogs
+     * @description This variable stores all the task objects.
+     * @default {}
      */
     this.taskLogs = {};
     this.runningTasks = {};
     /**
-     * @member {number} BdpTaskAdapter.concurrencyDelayCount
+     * @member {number} BdpTaskAdapter~concurrencyDelayCount
      * @description In case of setting a high concurrency number that causes submitting too many jobs at one time.
      * We added 1 to a delay count each time a job is sent. The job will be held for a delay interval times this delay count before it is processed.
      * In this way, even if there are so many jobs in a queue are submitted concurrently, the actual commands are delayed and processed one by one with the time interval.
@@ -172,7 +272,7 @@ class BdpTaskAdapter {
      */
     this.concurrencyDelayCount = 0;
     /**
-     * @member {number} BdpTaskAdapter.delayInterval
+     * @member {number} BdpTaskAdapter~delayInterval
      * @description This is a delay interval in milliseconds for concurrent job submission.
      * This prevents submitting too many jobs concurrently, especially when there are too many concurrent jobs to be submitted.
      * This can be set via options.
@@ -182,7 +282,7 @@ class BdpTaskAdapter {
     this.progressIndexFS = null; // used to block this.writeTaskLogs() if it is a truthy value.
     this.exitSignalCount = 0; // Used to count the job termination signals, if recieving more than 3 times, forcing process.exit(1).
     /**
-     * @member {BatchStatus} BdpTaskAdapter.previousStatus
+     * @member {BatchStatus} BdpTaskAdapter~previousStatus
      * @description This object stores the progress of batch tasks.
      */
     this.previousStatus = {
@@ -196,7 +296,7 @@ class BdpTaskAdapter {
       total: 0
     };
     /**
-     * @member {queue} BdpTaskAdapter.queue
+     * @member {queue} BdpTaskAdapter~queue
      * @description A queue object from https://www.npmjs.com/package/queue
      */
     this.queue = queue({concurrency: 1, autostart: false});
@@ -206,9 +306,10 @@ class BdpTaskAdapter {
   }
 
   /**
-   * @function BdpTaskAdapter._setOptions
+   * @function BdpTaskAdapter~_setOptions
    * @param {AdapterOption} options
    * @returns {AdapterOption}
+   * @description You may using this in your adapter class, such as `super._setOptions(options)`.
    */
   _setOptions(options) {
     let returnOpt = {};
@@ -245,49 +346,11 @@ class BdpTaskAdapter {
     return returnOpt;
   }
 
-  /**
-   * @async
-   * @function BdpTaskAdapter.beforeStart
-   * @description An async function that preparing all required resources to run tasks.
-   */
-  async beforeStart() {
-    return false;
-  }
 
   /**
-   * @async
-   * @function BdpTaskAdapter.detectJobStatus
-   * @description Some Jobs may be sent to remote computing resources so the we cannot determine when does
-   * the `this.runningTasks[taskID].taskEmitter` emit the finish or error event in the processSpawn function.
-   * This `detectJobStatus` function can be implemented to check if the job is finished or has errors. Returns nothing.
-   */
-  async detectJobStatus() {}
-
-  /**
-   * @async
-   * @function BdpTaskAdapter.beforeExit
-   * @description An async function that cleanup all resources before exit this process.
-   *
-   */
-  async beforeExit() {}
-
-  /**
-   * @interface
-   * @async
-   * @function BdpTaskAdapter.processExitCallback
-   * @param {string} taskID The task ID
-   * @param {number} exitCode
-   * @param {string} signal The terminating signals such as SIGTERM, SIGINT if exists. For normal task execution, the signal will be `null`.
-   * @returns {processExit} Process exit object, e.g. {exitCode: 0, signal: null}
-   */
-  async processExitCallback(taskID, exitCode, signal) {
-    return { exitCode: exitCode, signal: signal };
-  }
-
-  /**
-   * @function BdpTaskAdapter.printStatus
+   * @function BdpTaskAdapter#printStatus
    * @param {BatchStatus} currentStatus
-   * This function is used to print job progress in a batch task to stdout and stderr.
+   * This function is used to print job progress in a batch task to stdout and stderr. You may customize this function for your prferred style.
    */
   printStatus(currentStatus) {
     process.stdout.write(`[${new Date().toString()}] status change detected.` + "\n");
@@ -305,26 +368,10 @@ class BdpTaskAdapter {
     process.stdout.write(statusOutput.join("\n") + "\n");
   }
 
-  /**
-   * @async
-   * @function BdpTaskAdapter.processSpawn
-   * @param {string} taskID
-   * @description Formuate the commands to spawn
-   * @return {processRunning} a runningTaskObj that at least contains the taskEmitter that emits 'finished' or 'error'
-   * Remember to update taskObj.command
-   */
-  async processSpawn(taskID) {
-    return {
-      jobID: this.taskLogs[taskID].pid, // The id that generted by the task executor (e.g. pid, the jobId from PBS, ...)
-      stdoutStream: null,
-      stderrStream: null,
-      taskEmitter: new EventEmitter()// emit 'finish' or 'error' events
-    };
-  }
 
   /**
    * @async
-   * @function BdpTaskAdapter._processBeforeExitCallback
+   * @function BdpTaskAdapter~_processBeforeExitCallback
    * @param {string} taskID 
    * @param {FileHandler} fileHandler
    * @description This internal function will be called right after a job has exited (finished or errored) and before the `processExitCallback` function.
@@ -368,7 +415,7 @@ class BdpTaskAdapter {
   }
   /**
    * @async
-   * @function BdpTaskAdapter._processAfterExitCallback
+   * @function BdpTaskAdapter~_processAfterExitCallback
    * @param {string} taskID 
    * @param {FileHandler} fileHandler
    * @description This internal function is called after the `processExitCallback` function.
@@ -427,7 +474,7 @@ class BdpTaskAdapter {
   };
   /**
    * @async
-   * @function BdpTaskAdapter._runProcess
+   * @function BdpTaskAdapter~_runProcess
    * @description An async function that used to run a single job.
    * @param {string} taskID The auto-generated and uniqe task ID
    * @return {promise} A promise object that will be resovled when the task is finished normally and will be rejected when the task has errors (exitCode !== 0) or leaves unexpectedly.
@@ -505,7 +552,7 @@ class BdpTaskAdapter {
 
   /**
    * @async
-   * @function BdpTaskAdapter._parseRecipe
+   * @function BdpTaskAdapter~_parseRecipe
    * @param {TaskDefinition} taskObj 
    * @param {string} argumentRecipe The recipe file path
    * @return {TaskDefinition} 
@@ -550,27 +597,10 @@ class BdpTaskAdapter {
     }
   }
 
-  
-  /**
-   * @async
-   * @function BdpTaskAdapter.taskOverrides
-   * @param {TaskDefinition} taskObj
-   * @param {string} argumentRecipe The recipe file path to transform the TaskDefinition.taskArgs into runtime arguments.
-   * @return {TaskDefinition}
-   * @description Extends this function to overrides the task definitions.
-   * Each extended adapter should override this function and use call super.taskOverrides(argumentRecipe)
-   * if you use an argument-recipe yaml file to formulate your runtime arguments.
-   * Also, developers need to change the TaskDefinition.option.mem to an accepted format. The TaskDefinition.option.mem is memory size in bytes.
-   * Use the humanizeMemory filter function (@big-data-processor/utilities.memHumanize) to convert bytes into other human readable units, e.g. 1000000 to 1MB (or 1m); 1024 to 1KiB.
-   */
-  async taskOverrides(taskObj, argumentRecipe) {
-    await this._parseRecipe(taskObj, argumentRecipe);
-    return taskObj;
-  }
 
   /**
    * @async
-   * @function BdpTaskAdapter._addTasks
+   * @function BdpTaskAdapter~_addTasks
    * @description An async function that construct each task object in the this.taskLogs
    * @returns {TaskDefinition[]} This process should fill the `this.taskLog` object with each process.
    */
@@ -647,9 +677,10 @@ class BdpTaskAdapter {
     }
     return returnTaskObjs;
   }
+
   /**
    * @async
-   * @function BdpTaskAdapter._checkStatus
+   * @function BdpTaskAdapter~_checkStatus
    * @description
    * This function checks job status and return the latest status object.
    * If finished/exited jobs detected, emit finish/error event on the this.runningTasks[jobID] eventEmitter.
@@ -690,15 +721,16 @@ class BdpTaskAdapter {
   }
 
   /**
-   * @function BdpTaskAdpater._stopMonitor
+   * @function BdpTaskAdpater~_stopMonitor
    * @description Calls clearTimeout to remove monitor timer. As the name suggests, this function stop monitoring jobs.
    */
   _stopMonitor() {
     if (monitorTimer) {clearTimeout(monitorTimer); }
   }
+
   /**
    * @async
-   * @function BdpTaskAdapter._monitorTasks
+   * @function BdpTaskAdapter~_monitorTasks
    * @description This function is used to monitor job status and periodically checks job status.
    * @param {} queue The real queue object to deal the `this.runProcess` function of each job.
    */
@@ -731,11 +763,11 @@ class BdpTaskAdapter {
     monitorTimer = setTimeout(() => monitor().catch(e => console.log(e)), this.options.updateInterval);
     return;
   }
+
   /**
    * @async
-   * @function BdpTaskAdapter._writeTaskLogs
-   * @param {*} isFinished an indicator to specify whether the writing target is indexed.txt or planned-index.txt.
-   * This async function is used for update the job running states.
+   * @function BdpTaskAdapter~_writeTaskLogs
+   * @description Writing task progress to the the `progress-index.txt` file
    */
   async _writeTaskLogs() {
     if (this.progressIndexFS && this.progressIndexFS.end) {
@@ -794,7 +826,7 @@ class BdpTaskAdapter {
 
   /**
    * @async
-   * @function BdpTaskAdapter._loadProcessIndex
+   * @function BdpTaskAdapter~_loadProcessIndex
    * @description This function loads the index.txt file in the `options.taskLogFolder` to check if jobs are finished with the `exitCode` of 0 (normal exit).
    * If the job is finished, then it is skipped. This is used for pipeline resuming if the running pipelines stop unexpectedly.
    */
@@ -842,7 +874,7 @@ class BdpTaskAdapter {
 
   /**
    * @async
-   * @function BdpTaskAdapter._resumeRemoteTasks
+   * @function BdpTaskAdapter~_resumeRemoteTasks
    * @description This function trying to fetch remote jobs. 
    * This is perticularly useful when adapter process somehow closed and re-run the same adapter process.
    * Instead of directly re-creation of non-fnihsing jobs, adapter trys to fetch the job histroy.
@@ -900,7 +932,7 @@ class BdpTaskAdapter {
   
   /**
    * @async
-   * @function BdpTaskAdapter._runTasks
+   * @function BdpTaskAdapter~_runTasks
    * @description The core function to initiate the queue to process tasks.
    */
   async _runTasks() {
@@ -977,9 +1009,8 @@ class BdpTaskAdapter {
   }
 
   /**
-   * TODO: moving this _waiting
    * @async
-   * @function BdpTaskAdapter._waitingJobStatus
+   * @function BdpTaskAdapter~_waitingJobStatus
    * @param {*} timeout
    * @description This internal function waits until all taskObj are resolved (having their own exit codes).
    */
@@ -1013,10 +1044,9 @@ class BdpTaskAdapter {
   }
 
   /**
-   * @function BdpTaskAdapter.initialize
-   * @description This function returns the exposed functions.
-   * @returns An object that can be directly used by the developers. Used to run batch jobs.
-   * Mandatory, Do NOT change unless necessary
+   * @function BdpTaskAdapter#initialize
+   * @returns {TaskAdapterInstance} An object that can be directly used by the developers. Used to run batch jobs.
+   * @description This function must be called to get the Adapter object instance.
    */
   initialize() {
     if (globalReadlineInterface) {
