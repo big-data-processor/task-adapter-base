@@ -1,6 +1,7 @@
 # A base class of Task Adapter Big Data Processor.
 ---
 This is a base class for developers to extend and implment for different computing resources.
+([Click to view the jsDoc on Github Pages](https://big-data-processor.github.io/task-adapter-base/)).
 
 ## Task Adapter
 The Task Adapter is a core component in the Big Data Processor.
@@ -49,7 +50,11 @@ Overall, the workflow procedure of an adapter is shown in the following figure.
     <b>The procedure of an Adapter process</b>
 </div>
 
+# Instructions to extend this base class and implement for various computing resources
+(comming soon!)
 
+# Examples
+(comming soon!)
 
 # License
 
