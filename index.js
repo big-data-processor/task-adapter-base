@@ -708,6 +708,7 @@ class BdpTaskAdapter extends IAdapter {
     for(let i = 0; i < allTaskIDs.length; i ++) {
       const taskID = allTaskIDs[i];
       const taskObj = this.taskLogs[taskID];
+      if (!taskObj.option) { continue; }
       if (!taskObj.start) {
         currentStatus.pending++;
       } else if (!taskObj.end && !this.runningTasks[taskID]) {
@@ -899,12 +900,12 @@ class BdpTaskAdapter extends IAdapter {
           jobID: taskObj.pid, // The id that generted by the task executor (e.g. pid, the jobId from PBS, ...)
           stdoutStream: null, // The remote job does not use the pipe mode to stream the stdout/stderr stream.
           stderrStream: null,
-          taskEmitter: new EventEmitter()
+          taskEmitter: new EventEmitter(),
+          isRunning: false
         };
         const runtimeStdoe = {stdout: taskObj.stdout, stderr: taskObj.stderr};
         const {stdoeWatcher, readFileSizes} = await __watchStdoeFiles(runtimeStdoe, taskObj.option.batch);
-        const fileHandler = {stdoutFS: null, stderrFS: null
-          , stdoeWatcher: stdoeWatcher, readFileSizes: readFileSizes};
+        const fileHandler = {stdoutFS: null, stderrFS: null, stdoeWatcher: stdoeWatcher, readFileSizes: readFileSizes};
         process.stderr.write(`[${new Date().toString()}] Resume watching the task ${taskObj.taskID}.` + "\n");
         process.stderr.write(`[command] ${taskObj.command}` + "\n");
         // ISSUE: For a very large tasks, using too many listerners will crash the adapter process.
