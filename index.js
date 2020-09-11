@@ -93,6 +93,7 @@ let isStopping;
  * @property {stream | number} stdoutStream Only used in the stdoeMode === 'pipe'; if in the stdoeMode of 'watch', it is used as an object storing the stream loading progress in bytes.
  * @property {stream | number} stderrStream Only used in the stdoeMode === 'pipe'; if in the stdoeMode of 'watch', it is used as an object storing the stream loading progress in bytes.
  * @property {eventemitter} taskEmitter This event emitter emits 'finish' or 'error' events when the process is finished or has errors, respectively.
+ * @property {boolean} isRunning a flag to note if the job is queued or not running. If false, it may indicate that the job is sent to a remote resources but queued (not yet started). Used for the job counter display.
  */
 
  /**
@@ -149,15 +150,16 @@ class IAdapter {
    * @async
    * @function IAdapter#taskOverrides
    * @param {TaskDefinition} taskObj
-   * @param {string} argumentRecipe The recipe file path to transform the TaskDefinition.taskArgs into runtime arguments.
+   * @param {string} argumentRecipe The recipe content to transform the TaskDefinition.taskArgs into runtime arguments.
    * @return {TaskDefinition}
    * @description implement this function to overrides the task definitions.
    * Each implemented adapter should override this function to formulate your command patterns for your computing resources
-   * If you use an argument-recipe yaml file to formulate your runtime arguments, remember to call `super.taskOverrides(argumentRecipe);` inside the implemented version
+   * If you use an argument-recipe yaml file to formulate your runtime arguments, remember to call `await super._parseRecipe(taskObj, argumentRecipe);` inside the implemented version
    * Also, developers need to change the TaskDefinition.option.mem to an accepted format. The TaskDefinition.option.mem is memory size in bytes.
    * Use the humanizeMemory filter function (@big-data-processor/utilities.memHumanize) to convert bytes into other formats, e.g. 1000000 to 1MB (or 1m); 1024 to 1KiB.
    */
   async taskOverrides(taskObj, argumentRecipe) {
+    // const argumentRecipe = await fse.readFile(path.join(__dirname, "arg-recipe.yaml"), "utf8");
     // await this._parseRecipe(taskObj, argumentRecipe);
     return taskObj;
   }
@@ -175,7 +177,8 @@ class IAdapter {
       jobID: this.taskLogs[taskID].pid, // The id that generted by the task executor (e.g. pid, the jobId from PBS, ...)
       stdoutStream: null,
       stderrStream: null,
-      taskEmitter: new EventEmitter()// emit 'finish' or 'error' events
+      taskEmitter: new EventEmitter(), // emit 'finish' or 'error' events
+      isRunning: true
     };
   }
 
@@ -691,6 +694,7 @@ class BdpTaskAdapter extends IAdapter {
     const allTaskIDs = Object.keys(this.taskLogs);
     const currentStatus = {
       pending: 0,
+      queued: 0,
       running: 0,
       finishing: 0,
       exit: 0,
@@ -698,7 +702,8 @@ class BdpTaskAdapter extends IAdapter {
       others: [],
       total: 0
     };
-    currentStatus.running = runningTaskIDs.length;
+    currentStatus.queued = runningTaskIDs.filter(jobID => !this.runningTasks[jobID].isRunning).length;
+    currentStatus.running = runningTaskIDs.length - currentStatus.queued;
     currentStatus.total = allTaskIDs.length;
     for(let i = 0; i < allTaskIDs.length; i ++) {
       const taskID = allTaskIDs[i];
