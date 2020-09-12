@@ -394,7 +394,6 @@ class BdpTaskAdapter extends IAdapter {
     const runtimeStdErr = taskObj.stderr;
     const taskOption = taskObj.option;
     const stdoeMode = taskObj.option.stdoeMode;
-    taskObj.end = new Date().valueOf();
     const currentDelay = this.concurrencyDelayCount;
     sleep(this.delayInterval*3).then(() => {
       this.concurrencyDelayCount = currentDelay === this.concurrencyDelayCount ? 0 : this.concurrencyDelayCount;
@@ -433,15 +432,16 @@ class BdpTaskAdapter extends IAdapter {
            `[${new Date().toString()}] ${taskObj.taskID} has finished.`+ "\n";
     process.stderr.write(msg);
     taskObj.exitCode = exitObj.exitCode;
+    taskObj.end = new Date().valueOf();
     if (runtimeStdoe.stderr !== this.taskLogs[taskID].stderr) {
       await fse.ensureFile(this.taskLogs[taskID].stderr);
       let runtimeStderrExists = await fse.pathExists(runtimeStdoe.stderr);
       let trialNumber = 1;
-      while(!runtimeStderrExists && trialNumber <= 12) {
+      while(!runtimeStderrExists && trialNumber <= 150) {
         runtimeStderrExists = await fse.pathExists(runtimeStdoe.stderr);
         if (runtimeStderrExists) {break;}
         trialNumber ++;
-        await sleep(5000);
+        await sleep(2000);
       }
       if (trialNumber > 12 && !runtimeStderrExists) {process.stderr.write(`The task (${taskID}) does not have the stderr file` +
         ` after ${trialNumber - 1} times to check the file.` + "\n")}
@@ -453,11 +453,11 @@ class BdpTaskAdapter extends IAdapter {
       await fse.ensureFile(this.taskLogs[taskID].stdout);
       let runtimeStdoutExists = await fse.pathExists(runtimeStdoe.stdout);
       let trialNumber = 1;
-      while(!runtimeStdoutExists && trialNumber <= 12) {
+      while(!runtimeStdoutExists && trialNumber <= 150) {
         runtimeStdoutExists = await fse.pathExists(runtimeStdoe.stdout);
         if (runtimeStdoutExists) {break;}
         trialNumber ++;
-        await sleep(5000);
+        await sleep(2000);
       }
       if (trialNumber > 5 && !runtimeStdoutExists) {process.stderr.write(`The task (${taskID}) does not have the stdout file` +
         `after ${trialNumber - 1} times to check the file.` + "\n")}
