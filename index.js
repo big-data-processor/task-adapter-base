@@ -159,8 +159,7 @@ class IAdapter {
    * Use the humanizeMemory filter function (@big-data-processor/utilities.memHumanize) to convert bytes into other formats, e.g. 1000000 to 1MB (or 1m); 1024 to 1KiB.
    */
   async taskOverrides(taskObj, argumentRecipe) {
-    // const argumentRecipe = await fse.readFile(path.join(__dirname, "arg-recipe.yaml"), "utf8");
-    // await this._parseRecipe(taskObj, argumentRecipe);
+    await this._parseRecipe(taskObj, argumentRecipe);
     return taskObj;
   }
 
@@ -704,7 +703,7 @@ class BdpTaskAdapter extends IAdapter {
     };
     currentStatus.queued = runningTaskIDs.filter(jobID => !this.runningTasks[jobID].isRunning).length;
     currentStatus.running = runningTaskIDs.length - currentStatus.queued;
-    currentStatus.total = allTaskIDs.length;
+    currentStatus.total = allTaskIDs.length - allTaskIDs.filter(jobID => !this.taskLogs[jobID].option).length;
     for(let i = 0; i < allTaskIDs.length; i ++) {
       const taskID = allTaskIDs[i];
       const taskObj = this.taskLogs[taskID];
