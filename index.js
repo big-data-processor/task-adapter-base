@@ -499,14 +499,7 @@ class BdpTaskAdapter extends IAdapter {
     taskObj.end = null;
     taskObj.pid = runningTaskObj.jobID.toString();
     taskObj.exitCode = null;
-    if (taskObj.stdout) {
-      const stdoutExists = await fse.pathExists(taskObj.stdout);
-      if (stdoutExists) {await fse.remove(taskObj.stdout);}
-    }
-    if (taskObj.stderr) {
-      const stderrExists = await fse.pathExists(taskObj.stderr);
-      if (stderrExists) {await fse.remove(taskObj.stderr);}
-    }
+
     this.runningTasks[taskID] = runningTaskObj;
     const fileHandler = {stdoutFS: null, stderrFS: null, stdoeWatcher: null, readFileSizes: {stdout: 0, stderr: 0}};
     const runtimeStdoe = {stdout: taskObj.stdout, stderr: taskObj.stderr};
