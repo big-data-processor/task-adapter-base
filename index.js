@@ -1171,6 +1171,7 @@ class BdpTaskAdapter extends IAdapter {
             try {
               if (retry > 0) {
                 process.stderr.write(`[${new Date().toString()}] Retry failed tasks (${retry} time${retry > 1 ? 's' : ''}).` + "\n");
+                await this.beforeStart();
               }
               await this._runTasks();
               success = true;
