@@ -26,18 +26,18 @@ let monitorTimer;
 let isStopping;
 
 /**
- * @typedef TaskDefinition
+ * @typedef JobDefinition
  * @type {Object}
  * @description This the format that we store for each task item.
- * @property {string} taskName The task name in the task definitions
- * @property {string} taskID The auto-generated unique id which has the taskName
- * @property {string} pid The jobID that is generated from task executors. (e.g. pid, pbs job ID, ...)
+ * @property {string} taskName The job name in the task definitions
+ * @property {string} jobID The auto-generated unique id which contains the taskName
+ * @property {string} pid The jobID that is generated from the job running environment. (e.g. pid, pbs job ID, ...)
  * @property {string} image The image name in the task definitions
- * @property {string} exec The executable/command for the task in a container
- * @property {array} args The resolved task arguments in the task definitions (These arguments were prepared for different run-time environments).
+ * @property {string} exec The executable/command for the job in a container
+ * @property {array} args The resolved arguments in the task definitions (These arguments were prepared for different run-time environments).
  * @property {string} command The executed command for display only.
- * @property {number} start The task start timestamp in milliseconds since midnight 01, Jan, 1970 UTC
- * @property {number} end The task start timestamp in milliseconds since midnight 01, Jan, 1970 UTC
+ * @property {number} start The job start timestamp in milliseconds since midnight 01, Jan, 1970 UTC
+ * @property {number} end The job start timestamp in milliseconds since midnight 01, Jan, 1970 UTC
  * @property {path} stdout The file path for standard output
  * @property {path} stderr The file path for standard error
  * @property {number} cpus Used for different runtime environments; It depends on the runtime environments; Might have different meanings.
@@ -46,7 +46,21 @@ let isStopping;
  * @property {number} exitCode The exit code after process exit;
  * @property {array} taskArgs The arguments before transforming into the runtime arguments. Different adapters will form taskArgs into different runtime arguments, e.g. the docker adapter will make the command begins with `docker run ...`, while the pbs adapter starts with `qsub ...`.
  * @property {AdapterOption} option Additional options that initiate the adapter.
+ * @property {Proxy} proxy The proxy object (null if the proxy is not enabled)
  */
+
+/**
+ * @typedef Proxy
+ * @type {Object}
+ * @description The proxy information in a JobDefinition
+ * @property {string} protocol The protocol of the proxy (currently, only the http protocol is supported)
+ * @property {string} ip The ip address of the proxy
+ * @property {number} port The port number of the proxy
+ * @property {boolean} pathRewrite
+ * @property {string} entryPath 
+ * @property {number} containerPort The port number in the container
+ */
+
 
 /**
  * @typedef AdapterOption
@@ -75,6 +89,7 @@ let isStopping;
  * @property {boolean} stopOnError Set to true if you want to stop all other jobs when one of the jobs have errors. (Default = false)
  * @property {number} delayInterval The interval in milliseconds between job submissions. This delay time is set to avoid submitting too many jobs in a short time.
  * @property {boolean} forceRerun Ignore the job exitCode and re-run jobs anyway.
+ * @property {'normal' | 'eager'} retryMode In the eager mode, failed task will be directly pushed back to the task queeu for rerun.
  * @property {*} ... Additional options can be provided for different requirements of adapters.
  */
 
@@ -87,12 +102,12 @@ let isStopping;
  */
 
 /**
- * @typedef ProcessRunning
+ * @typedef RunningJob
  * @type {Object}
- * @property {string} jobID
+ * @property {string} runningJobId
  * @property {stream | number} stdoutStream Only used in the stdoeMode === 'pipe'; if in the stdoeMode of 'watch', it is used as an object storing the stream loading progress in bytes.
  * @property {stream | number} stderrStream Only used in the stdoeMode === 'pipe'; if in the stdoeMode of 'watch', it is used as an object storing the stream loading progress in bytes.
- * @property {eventemitter} taskEmitter This event emitter emits 'finish' or 'error' events when the process is finished or has errors, respectively.
+ * @property {eventemitter} jobEmitter This event emitter emits 'finish' or 'error' events when the process is finished or has errors, respectively.
  * @property {boolean} isRunning a flag to note if the job is queued or not running. If false, it may indicate that the job is sent to a remote resources but queued (not yet started). Used for the job counter display.
  */
 
@@ -148,48 +163,64 @@ class IAdapter {
 
   /**
    * @async
-   * @function IAdapter#taskOverrides
-   * @param {TaskDefinition} taskObj
-   * @param {string} argumentRecipe The recipe content to transform the TaskDefinition.taskArgs into runtime arguments.
-   * @return {TaskDefinition}
-   * @description implement this function to overrides the task definitions.
+   * @funciton IAdapter#determineJobProxy
+   * @param {JobDefinition} jobObj
+   * @returns {Proxy | null}
+   */
+  async determineJobProxy(jobObj) {
+    if (!jobObj.proxy) { return null; }
+    return {
+      protocol: jobObj.proxy.protocol,
+      ip: jobObj.proxy.ip || '127.0.0.1',
+      port: jobObj.proxy.port || undefined,
+      pathRewrite: jobObj.proxy.pathRewrite.toString() === 'true' ? true : false,
+      entryPath: jobObj.proxy.entryPath || '/',
+      containerPort: jobObj.proxy.containerPort || undefined
+    };
+  }
+  /**
+   * @async
+   * @function IAdapter#jobOverrides
+   * @param {JobDefinition} jobObj
+   * @param {string} argumentRecipe The recipe content to transform the JobDefinition.taskArgs into runtime arguments.
+   * @return {JobDefinition}
+   * @description implement this function to overrides the job definitions.
    * Each implemented adapter should override this function to formulate your command patterns for your computing resources
-   * If you use an argument-recipe yaml file to formulate your runtime arguments, remember to call `await super._parseRecipe(taskObj, argumentRecipe);` inside the implemented version
-   * Also, developers need to change the TaskDefinition.option.mem to an accepted format. The TaskDefinition.option.mem is memory size in bytes.
+   * If you use an argument-recipe yaml file to formulate your runtime arguments, remember to call `await super._parseRecipe(jobObj, argumentRecipe);` inside the implemented version
+   * Also, developers need to change the JobDefinition.option.mem to an accepted format. The JobDefinition.option.mem is memory size in bytes.
    * Use the humanizeMemory filter function (@big-data-processor/utilities.memHumanize) to convert bytes into other formats, e.g. 1000000 to 1MB (or 1m); 1024 to 1KiB.
    */
-  async taskOverrides(taskObj, argumentRecipe) {
-    await this._parseRecipe(taskObj, argumentRecipe);
-    return taskObj;
+  async jobOverrides(jobObj, argumentRecipe) {
+    await this.parseRecipe(jobObj, argumentRecipe);
+    return jobObj;
   }
 
   /**
    * @async
-   * @function IAdapter#processSpawn
-   * @param {string} taskID
+   * @function IAdapter#jobSpawn
+   * @param {JobDefinition} jobObj
    * @description Formuate the commands to spawn
-   * @return {ProcessRunning} a runningTaskObj that at least contains the taskEmitter that emits 'finished' or 'error'
-   * Remember to update taskObj.command
+   * @return {RunningJob} a runningJob object that at least contains the jobEmitter that emits 'finished' or 'error'
    */
-  async processSpawn(taskID) {
+  async jobDeploy(jobObj) {
     return {
-      jobID: this.taskLogs[taskID].pid, // The id that generted by the task executor (e.g. pid, the jobId from PBS, ...)
+      runningJobId: jobObj.pid, // The id that generted by the task executor (e.g. pid, the jobId from PBS, ...)
       stdoutStream: null,
       stderrStream: null,
-      taskEmitter: new EventEmitter(), // emit 'finish' or 'error' events
+      jobEmitter: new EventEmitter(), // emit 'finish' or 'error' events
       isRunning: true
     };
   }
 
   /**
    * @async
-   * @method IAdapter#processExitCallback
-   * @param {string} taskID The task ID
+   * @method IAdapter#jobExitCallback
+   * @param {JobDefinition} jobObj The job definition object
    * @param {number} exitCode
    * @param {string} signal The terminating signals such as SIGTERM, SIGINT if exists. For normal task execution, the signal will be `null`.
    * @returns {processExit} Process exit object, e.g. {exitCode: 0, signal: null}
    */
-  async processExitCallback(taskID, exitCode, signal) {
+  async jobExitCallback(jobObj, exitCode, signal) {
     return { exitCode: exitCode, signal: signal };
   }
 
@@ -199,7 +230,7 @@ class IAdapter {
    * @method IAdapter#detectJobStatus
    * @method 
    * @description Some Jobs may be sent to remote computing resources so the we cannot determine when does
-   * the `this.runningTasks[taskID].taskEmitter` emit the finish or error event in the processSpawn function.
+   * the `this.runningJobs[jobId].jobEmitter` emit the finish or error event in the jobSpawn function.
    * This `detectJobStatus` function can be implemented to check if the job is finished or has errors. Returns nothing.
    */
   async detectJobStatus() {}
@@ -213,17 +244,13 @@ class IAdapter {
   async beforeExit() {}
 }
 
-
-
-
-
 /**
  * @author Chi Yang <chiyang1118@gmail.com>
  * @class BdpTaskAdapter
  * @implements IAdapter
  * @license 
  * MIT Licensed
- * Copyright (c) 2020 Chi Yang(楊崎) <chiyang1118@gmail.com>
+ * Copyright (c) 2021 Chi Yang(楊崎) <chiyang1118@gmail.com>
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -244,9 +271,10 @@ class IAdapter {
  * SOFTWARE.
  */
 class BdpTaskAdapter extends IAdapter {
+  #jobStore;
   /**
    * @constructor
-   * @param {AdapterOption} globalOption An option object. See the _setOptions.js for more information.
+   * @param {AdapterOption} globalOption An option object. See the setOptions for more information.
    * @description The constructor recieves the option object which contains information about the runtime settings. This global option will be overridden by task options.
    * The default behavior of this constructor prints the adapter name and authors.
    * Use globalOption.simplifiedTitle = true to specify a simplied title graph.
@@ -254,15 +282,15 @@ class BdpTaskAdapter extends IAdapter {
    */
   constructor(globalOption) {
     super();
-    this.options = this._setOptions(globalOption);
+    this.options = this.setOptions(globalOption);
     plotTitle(this.options.adapterName || "Customized", this.options.adapterAuthor || "anonymous", !this.options.simplifiedTitle, this.options.titleFontName);
     /**
-     * @member {Object<string, TaskDefinition>} BdpTaskAdapter~taskLogs
+     * @member {Map<string, JobDefinition>} BdpTaskAdapter~taskLogs
      * @description This variable stores all the task objects.
      * @default {}
      */
-    this.taskLogs = {};
-    this.runningTasks = {};
+    this.#jobStore = {};
+    this.runningJobs = new Map();
     /**
      * @member {number} BdpTaskAdapter~concurrencyDelayCount
      * @description In case of setting a high concurrency number that causes submitting too many jobs at one time.
@@ -308,12 +336,12 @@ class BdpTaskAdapter extends IAdapter {
   }
 
   /**
-   * @function BdpTaskAdapter~_setOptions
+   * @function BdpTaskAdapter~setOptions
    * @param {AdapterOption} options
    * @returns {AdapterOption}
    * @description You may using this in your adapter class, such as `super._setOptions(options)`.
    */
-  _setOptions(options) {
+  setOptions(options) {
     let returnOpt = {};
     const defaultOpt = {
       adapter: "docker",
@@ -338,6 +366,7 @@ class BdpTaskAdapter extends IAdapter {
       workdir: options && options.workdir ? options.workdir : '/project',
       debug: false,
       retry: 3,
+      retryMode: options.retryMode === 'eager' ? 'eager' : 'normal',
       forceRerun: false
     };
     returnOpt = Object.assign({}, defaultOpt, options);
@@ -350,53 +379,125 @@ class BdpTaskAdapter extends IAdapter {
 
 
   /**
-   * @function BdpTaskAdapter#printStatus
-   * @param {BatchStatus} currentStatus
+   * @function BdpTaskAdapter~_printStatus
+   * @param {BatchStatus} currentStatus The current status object with the fields {pending, queued, running, finishing, exit, done, total};
    * This function is used to print job progress in a batch task to stdout and stderr. You may customize this function for your prferred style.
    */
-  printStatus(currentStatus) {
+
+  _printStatus({pending, queued, running, finishing, exit, done, total}) {
     process.stdout.write(`[${new Date().toString()}] status change detected.` + "\n");
     const statusOutput = [
       "-------------------------------"
-      , `Pending: ${currentStatus.pending}`
-      , `Queued: ${currentStatus.queued}`
-      , `Running: ${currentStatus.running}`
-      , `Finishing: ${currentStatus.finishing}`
-      , `Error: ${currentStatus.exit}`
-      , `Done: ${currentStatus.done}`
-      , `Total: ${currentStatus.total}`
+      , `Pending: ${pending}`
+      , `Queued: ${queued}`
+      , `Running: ${running}`
+      , `Finishing: ${finishing}`
+      , `Error: ${exit}`
+      , `Done: ${done}`
+      , `Total: ${total}`
       , "-------------------------------"
     ];
     process.stdout.write(statusOutput.join("\n") + "\n");
   }
 
+  /**
+   * @private
+   * @function BdpTaskAdapter~#_sendMsgToBdpClient
+   * @param {string} action The message action type. The current possible values are 'registerProxy' or 'unregisterProxy'.
+   * @param {object} content The message content object of any types.
+   * @description This private function sends messages to bdp-server with process.send.
+   */
+  #_sendMsgToBdpClient(action, content) {
+    process.send({source: "bdp-adapter", action, content});
+  }
+
+  /**
+   * @private
+   * @function BdpTaskAdapter~#_handleProxy
+   * @param {string} jobId The job ID
+   * @param {Proxy} Proxy (Optional) The proxy object to register. When not giving this proxy, this function unregisters the proxy.
+   * @description This private funciton handles the proxy registration and unregistration.
+   */
+
+  #_handleProxy(jobId, proxy) {
+    if (!jobId) { return; }
+    if (proxy) {
+      const {ip, port, protocol, pathRewrite, entryPath} = proxy;
+      this.#_sendMsgToBdpClient("registerProxy", {ip, port, protocol, jobId, pathRewrite, entryPath});
+    } else {
+      this.#_sendMsgToBdpClient("unregisterProxy", {jobId});
+    }
+  }
 
   /**
    * @async
-   * @function BdpTaskAdapter~_processBeforeExitCallback
-   * @param {string} taskID 
+   * @funciton BdpTaskAdapter#emitJobStatus
+   * @param {*} jobId The job ID.
+   * @param {*} code The job exit code 
+   * @param {*} signal (optional) The job exit signal.
+   * @description This function emits the 'finish' event when the job exit code is 0 or the 'error' event when else.
+   * Note that calling this function does not stop the job process. This function only notify the adapter that the job is finished.
+   */
+
+  async emitJobStatus(jobId, code, signal) {
+    const runningJob = this.runningJobs.get(jobId);
+    if (!runningJob) { return false; }
+    const jobEmitter = runningJob.jobEmitter;
+    let resolved = false;
+    while (!resolved) {
+      await sleep(500);
+      try {
+        const state = code == 0 ? 'finish' : 'error';
+        if (jobEmitter.listenerCount(state) >= 1) {
+          jobEmitter.emit(state, code, signal);
+          resolved = true;
+        }
+      } catch(e) {console.log(e)};
+    }
+    return true;
+  }
+
+  /**
+   * @funciton BdpTaskAdapter#getJobById
+   * @param {*} jobId The job id
+   * @returns {JobDefinition} Returns the job definition object.
+   * @memberof BdpTaskAdapter
+   */
+  getJobById(jobId) {
+    return this.#jobStore[jobId];
+  }
+
+  /**
+   * @async
+   * @private
+   * @function BdpTaskAdapter~#_processBeforeExitCallback
+   * @param {string} jobId 
    * @param {FileHandler} fileHandler
    * @description This internal function will be called right after a job has exited (finished or errored) and before the `processExitCallback` function.
    * The default behavior is to get the remaining stdout/stderr messages and clean up the streaming resources.
    */
-  async _processBeforeExitCallback(taskID, fileHandler) {
+  async #_processBeforeExitCallback(jobId, fileHandler) {
     /**
      * TODO: 
      * For pipe mode: prepare the stdoutFS and stderrFS
      * For watchmode: prepare the stdoeWatcher, which can be generated by chokidar.watch()
      */
-    this.runningTasks[taskID].taskEmitter.removeAllListeners("finish");
-    this.runningTasks[taskID].taskEmitter.removeAllListeners("error");
-    delete this.runningTasks[taskID];
-    const taskObj = this.taskLogs[taskID];
-    const runtimeStdOut = taskObj.stdout;
-    const runtimeStdErr = taskObj.stderr;
-    const taskOption = taskObj.option;
-    const stdoeMode = taskObj.option.stdoeMode;
+    if (this.runningJobs.has(jobId)) {
+      this.runningJobs.get(jobId).jobEmitter.removeAllListeners("finish");
+      this.runningJobs.get(jobId).jobEmitter.removeAllListeners("error");
+    }
+    const jobObj = this.getJobById(jobId);
+    const runtimeStdOut = jobObj.stdout;
+    const runtimeStdErr = jobObj.stderr;
+    const taskOption = jobObj.option;
+    const stdoeMode = jobObj.option.stdoeMode;
     const currentDelay = this.concurrencyDelayCount;
     sleep(this.delayInterval*3).then(() => {
       this.concurrencyDelayCount = currentDelay === this.concurrencyDelayCount ? 0 : this.concurrencyDelayCount;
     });
+    if (jobObj.proxy) {
+      this.#_handleProxy(jobId);
+    }
     if (fileHandler) {
       if (stdoeMode === "watch" && !taskOption.batch && fileHandler.stdoeWatcher) {
         fileHandler.stdoeWatcher.close();
@@ -405,35 +506,36 @@ class BdpTaskAdapter extends IAdapter {
         if (stdoutExists) { await __getRemainingStdoe("stdout", runtimeStdOut, fileHandler.readFileSizes.stdout);}
         if (stderrExists) { await __getRemainingStdoe("stderr", runtimeStdErr, fileHandler.readFileSizes.stderr);}
       } else if (stdoeMode === "pipe") {
-        if (fileHandler.stdoutFS) { await __endingWritableStreamAsync(fileHandler.stdoutFS);}
-        if (fileHandler.stderrFS) { await __endingWritableStreamAsync(fileHandler.stderrFS);}
+        if (fileHandler.stdoutFS) { await __endingWritableStreamAsync(fileHandler.stdoutFS); }
+        if (fileHandler.stderrFS) { await __endingWritableStreamAsync(fileHandler.stderrFS); }
       }
     }
     if (this.options.debug) {
-      process.stderr.write(`[${new Date().toString()}] ${taskID} _processBeforeExitCall() finished.` + "\n");
+      process.stderr.write(`[${new Date().toString()}] ${jobId} #_processBeforeExitCall() finished.` + "\n");
     }
-    return taskID;
+    return jobId;
   }
   /**
    * @async
-   * @function BdpTaskAdapter~_processAfterExitCallback
-   * @param {string} taskID 
+   * @private
+   * @function BdpTaskAdapter~#_processAfterExitCallback
+   * @param {string} jobId 
    * @param {FileHandler} fileHandler
    * @description This internal function is called after the `processExitCallback` function.
    * The default behavior is to store the resulting stdout/stderr files.
    */
-  async _processAfterExitCallback(taskID, exitObj, runtimeStdoe) {
-    const taskObj = this.taskLogs[taskID];
+  async #_processAfterExitCallback(jobId, exitObj, runtimeStdoe) {
+    const jobObj = this.getJobById(jobId);
     let msg = "";
     if (exitObj.signal) { process.stderr.write(`[${new Date().toString()}] Recieving signal: ${exitObj.signal}` + ".\n"); }
     msg =  String(exitObj.exitCode) !== "0" ?
-           `[${new Date().toString()}] ${taskObj.taskID} has aborted (exit code: ${exitObj.exitCode})` + ".\n" :
-           `[${new Date().toString()}] ${taskObj.taskID} has finished.`+ "\n";
+           `[${new Date().toString()}] ${jobObj.jobId} has aborted (exit code: ${exitObj.exitCode})` + ".\n" :
+           `[${new Date().toString()}] ${jobObj.jobId} has finished.`+ "\n";
     process.stderr.write(msg);
-    taskObj.exitCode = exitObj.exitCode;
-    taskObj.end = new Date().valueOf();
-    if (runtimeStdoe.stderr !== this.taskLogs[taskID].stderr) {
-      await fse.ensureFile(this.taskLogs[taskID].stderr);
+    jobObj.exitCode = exitObj.exitCode;
+    jobObj.end = new Date().valueOf();
+    if (runtimeStdoe.stderr !== jobObj.stderr) {
+      await fse.ensureFile(jobObj.stderr);
       let runtimeStderrExists = await fse.pathExists(runtimeStdoe.stderr);
       let trialNumber = 1;
       while(!runtimeStderrExists && trialNumber <= 150) {
@@ -442,14 +544,14 @@ class BdpTaskAdapter extends IAdapter {
         trialNumber ++;
         await sleep(2000);
       }
-      if (trialNumber > 12 && !runtimeStderrExists) {process.stderr.write(`The task (${taskID}) does not have the stderr file` +
-        ` after ${trialNumber - 1} times to check the file.` + "\n")}
+      if (trialNumber > 12 && !runtimeStderrExists) {
+        process.stderr.write(`The task (${jobId}) does not have the stderr file` + ` after ${trialNumber - 1} times to check the file.` + "\n")}
       if (runtimeStderrExists) {
-        await fse.move(runtimeStdoe.stderr, this.taskLogs[taskID].stderr, { overwrite: true });
+        await fse.move(runtimeStdoe.stderr, jobObj.stderr, { overwrite: true });
       }
     }
-    if (runtimeStdoe.stdout !== this.taskLogs[taskID].stdout) {
-      await fse.ensureFile(this.taskLogs[taskID].stdout);
+    if (runtimeStdoe.stdout !== jobObj.stdout) {
+      await fse.ensureFile(jobObj.stdout);
       let runtimeStdoutExists = await fse.pathExists(runtimeStdoe.stdout);
       let trialNumber = 1;
       while(!runtimeStdoutExists && trialNumber <= 150) {
@@ -458,94 +560,111 @@ class BdpTaskAdapter extends IAdapter {
         trialNumber ++;
         await sleep(2000);
       }
-      if (trialNumber > 5 && !runtimeStdoutExists) {process.stderr.write(`The task (${taskID}) does not have the stdout file` +
-        `after ${trialNumber - 1} times to check the file.` + "\n")}
+      if (trialNumber > 5 && !runtimeStdoutExists) {
+        process.stderr.write(`The task (${jobId}) does not have the stdout file` + `after ${trialNumber - 1} times to check the file.` + "\n")}
       if (runtimeStdoutExists) {
-        await fse.move(runtimeStdoe.stdout, this.taskLogs[taskID].stdout, { overwrite: true });
+        await fse.move(runtimeStdoe.stdout, jobObj.stdout, { overwrite: true });
       }
     }
     if (this.options.batch) {
-      const status = await this._checkStatus();
-      this.printStatus(status);
+      const status = await this.#_checkStatus();
+      this._printStatus(status);
     }
     if (this.options.debug) {
-      process.stderr.write(`[${new Date().toString()}] ${taskID} _processAfterExitCallback() finished.` + "\n");
+      process.stderr.write(`[${new Date().toString()}] ${jobId} #_processAfterExitCallback() finished.` + "\n");
     }
-    // await this._writeTaskLogs();
+    this.runningJobs.delete(jobId);
     return;
   };
   /**
    * @async
-   * @function BdpTaskAdapter~_runProcess
+   * @private
+   * @function BdpTaskAdapter~#_runJob
    * @description An async function that used to run a single job.
-   * @param {string} taskID The auto-generated and uniqe task ID
+   * @param {string} jobId The auto-generated and uniqe job ID
    * @return {promise} A promise object that will be resovled when the task is finished normally and will be rejected when the task has errors (exitCode !== 0) or leaves unexpectedly.
    */
-  async _runProcess(taskID) {
+  async #_runJob(jobId) {
     // To prevent the job submitted too frequently. This is controlled by the delayInterval option.
     this.concurrencyDelayCount ++;
     await sleep(this.delayInterval*this.concurrencyDelayCount);
     if (isStopping) { return false; }
     const startTime = new Date().valueOf();
-    const taskObj = this.taskLogs[taskID];
-    const taskOption = taskObj.option;
-    if (!taskObj.option) {
-      this.logWriterFS.write(`${taskID} has no option in its task object.` + "\n");
+    const jobObj = this.#jobStore[jobId];
+    const jobOption = jobObj.option;
+    if (!jobObj.option) {
+      this.logWriterFS.write(`${jobId} has no option in its task object.` + "\n");
     }
-    const stdoeMode = taskOption.stdoeMode;
-    const stopOnError = taskOption.stopOnError;
-    if (taskObj.stdout) {
-      const stdoutExists = await fse.pathExists(taskObj.stdout);
-      if (stdoutExists) {await fse.remove(taskObj.stdout);}
+    const stdoeMode = jobOption.stdoeMode;
+    const stopOnError = jobOption.stopOnError;
+    if (jobObj.stdout) {
+      const stdoutExists = await fse.pathExists(jobObj.stdout);
+      if (stdoutExists) {await fse.remove(jobObj.stdout);}
     }
-    if (taskObj.stderr) {
-      const stderrExists = await fse.pathExists(taskObj.stderr);
-      if (stderrExists) {await fse.remove(taskObj.stderr);}
+    if (jobObj.stderr) {
+      const stderrExists = await fse.pathExists(jobObj.stderr);
+      if (stderrExists) {await fse.remove(jobObj.stderr);}
     }
-    const runningTaskObj = await this.processSpawn(taskID);
-    taskObj.start = startTime;
-    taskObj.end = null;
-    taskObj.pid = runningTaskObj.jobID.toString();
-    taskObj.exitCode = null;
-    this.runningTasks[taskID] = runningTaskObj;
+    const runningJob = await this.jobDeploy(jobObj);
+    jobObj.start = startTime;
+    jobObj.end = null;
+    jobObj.pid = runningJob.runningJobId.toString();
+    jobObj.exitCode = null;
+    this.runningJobs.set(jobId, runningJob);
     const fileHandler = {stdoutFS: null, stderrFS: null, stdoeWatcher: null, readFileSizes: {stdout: 0, stderr: 0}};
-    const runtimeStdoe = {stdout: taskObj.stdout, stderr: taskObj.stderr};
+    const runtimeStdoe = {stdout: jobObj.stdout, stderr: jobObj.stderr};
     if (stdoeMode === "pipe") {
       // In this mode, we directly pipe the stdout/stderr to files (and process.stdout/stderr if not batch mode) 
-      const {stdoutFS, stderrFS} = await __pipeStdoeFiles(runtimeStdoe, runningTaskObj, taskObj.option.batch);
+      const {stdoutFS, stderrFS} = await __pipeStdoeFiles(runtimeStdoe, runningJob, jobObj.option.batch);
       fileHandler.stdoutFS = stdoutFS;
       fileHandler.stderrFS = stderrFS;
-    } else if (stdoeMode === "watch" && !taskOption.batch) {
+    } else if (stdoeMode === "watch" && !jobOption.batch) {
       // In the watch mode, we watch the runtimeStdOut/runtimeStdErr files (mainly for remote jobs)
-      const {stdoeWatcher, readFileSizes} = await __watchStdoeFiles(runtimeStdoe, taskObj.option.batch);
+      const {stdoeWatcher, readFileSizes} = await __watchStdoeFiles(runtimeStdoe, jobObj.option.batch);
       fileHandler.stdoeWatcher = stdoeWatcher;
       fileHandler.readFileSizes = readFileSizes;
     }
-    let msg = `[${new Date(startTime).toString()}] Start the task ${taskObj.taskID}.` + "\n";
+    let msg = `[${new Date(startTime).toString()}] Start the job ${jobObj.jobId}.` + "\n";
     process.stderr.write(msg);
     if (stdoeMode === "pipe") { fileHandler.stderrFS.write(msg); }
-    msg = `[command] ${taskObj.command}` + "\n";
+    msg = `[command] ${jobObj.command}` + "\n";
     process.stderr.write(msg);
     if (stdoeMode === "pipe") { fileHandler.stderrFS.write(msg); }
-    // await this._writeTaskLogs();
     if (this.options.batch) {
-      const status = await this._checkStatus();
-      this.printStatus(status);
+      const status = await this.#_checkStatus();
+      this._printStatus(status);
+    }
+    try {
+      jobObj.proxy = await this.determineJobProxy(jobObj);
+      jobObj.proxy = jobObj.proxy || null;
+      this.#_handleProxy(jobId, jobObj.proxy);
+    } catch (err) {
+      console.log(err);
+      process.stderr.write(`[Task Adapter] Failed to run the determineJobProxy function to get the proxy object. Unreigster the proxy.`);
+      this.#_handleProxy(jobId);
+      jobObj.proxy = null;
     }
     return new Promise((resolve, reject) => {
-      this.runningTasks[taskID].taskEmitter.on("finish", (exitCode, signal) => {
+      this.runningJobs.get(jobId).jobEmitter.on("finish", (exitCode, signal) => {
         (async () => {
-          await this._processBeforeExitCallback(taskID, fileHandler);
-          const exitObj = await this.processExitCallback(taskID, exitCode, signal);
-          await this._processAfterExitCallback(taskID, exitObj, runtimeStdoe);
+          await this.#_processBeforeExitCallback(jobId, fileHandler);
+          const exitObj = await this.jobExitCallback(jobObj, exitCode, signal);
+          await this.#_processAfterExitCallback(jobId, exitObj, runtimeStdoe);
           return exitObj.exitCode == "0" ? resolve(0) : (stopOnError ? reject(exitObj.exitCode) : resolve(exitObj.exitCode));
         })().catch(err => reject(err));
       });
-      this.runningTasks[taskID].taskEmitter.on("error", (exitCode, signal) => {
+      this.runningJobs.get(jobId).jobEmitter.on("error", (exitCode, signal) => {
         (async () => {
-          await this._processBeforeExitCallback(taskID, fileHandler);
-          const exitObj = await this.processExitCallback(taskID, exitCode, signal);
-          await this._processAfterExitCallback(taskID, exitObj, runtimeStdoe);
+          await this.#_processBeforeExitCallback(jobId, fileHandler);
+          const exitObj = await this.jobExitCallback(jobObj, exitCode, signal);
+          await this.#_processAfterExitCallback(jobId, exitObj, runtimeStdoe);
+          if (this.options.retryMode === 'eager') {
+            if (!jobObj.retry) { jobObj.retry = 0; }
+            jobObj.retry ++;
+            if (jobObj.retry <= this.options.retry) {
+              this.queue.push(() => this.#_runJob(jobId));
+            }
+          }
           return stopOnError ? reject(exitObj.exitCode) : resolve(exitObj.exitCode);
         })().catch(err => reject(err));
       });
@@ -554,16 +673,16 @@ class BdpTaskAdapter extends IAdapter {
 
   /**
    * @async
-   * @function BdpTaskAdapter~_parseRecipe
-   * @param {TaskDefinition} taskObj 
+   * @function BdpTaskAdapter#parseRecipe
+   * @param {JobDefinition} jobObj The job object
    * @param {string} argumentRecipe The recipe file path
-   * @return {TaskDefinition} 
-   * @description This function can be called inside BdpTaskAdapter.taskOverrides when you implement the taskOverrides function.
-   * This function basically parses the recipe file (in yaml format) and overrides the TaskDefinition object. Then, it returns the updated object.
-   * (Note: the original taskObj will be mutated.)
+   * @return {JobDefinition} 
+   * @description This function can be called inside BdpTaskAdapter.jobOverrides when you implement the jobOverrides function.
+   * This function basically parses the recipe file (in yaml format) and overrides the JobDefinition object. Then, it returns the updated job object.
+   * (Note: the original job object will be mutated.)
    */
-  async _parseRecipe(taskObj, argumentRecipe) {
-    if (!argumentRecipe) { return taskObj; }
+  async parseRecipe(jobObj, argumentRecipe) {
+    if (!argumentRecipe) { return jobObj; }
     /**
      * TODO: in a near future, users can specify the formats of cpu and memory using the recipe yaml file.
      * The memHumanize funtion will be humanizeMemory filter funtion in the template
@@ -572,26 +691,26 @@ class BdpTaskAdapter extends IAdapter {
      */
     let templateObj;
     try {
-      templateObj = yaml.safeLoad(argumentRecipe);
+      templateObj = yaml.load(argumentRecipe);
       /**
         * TODO: Parsing templateObj['option'] for cpus, memory and other(?)
       */
       if (templateObj && templateObj["arg-recipe"]) {
-        const theTaskObj = Object.assign({}, taskObj, {taskArgs: taskObj.taskArgs.map(arg => String(arg).replace(/\\/g, "\\\\"))});
+        const theJobObj = Object.assign({}, jobObj, {taskArgs: jobObj.taskArgs.map(arg => String(arg).replace(/\\/g, "\\\\"))});
         const resolvedYAMLString = await renderNunjucksTemplateAsync(
           templateObj["arg-recipe"],
           {
-            option: theTaskObj.option,
-            taskObj: theTaskObj,
+            option: theJobObj.option,
+            jobObj: theJobObj,
             os: os,
             path: path,
             url: url
           }
         );
-        const argArray = yaml.safeLoad(resolvedYAMLString);
-        taskObj.args = Array.isArray(argArray) ? argArray.filter(arg => ((arg == "") | (arg == null) ? false : true)) : [];
+        const argArray = yaml.load(resolvedYAMLString);
+        jobObj.args = Array.isArray(argArray) ? argArray.filter(arg => ((arg == "") | (arg == null) ? false : true)) : [];
       }
-      return taskObj;
+      return jobObj;
     } catch (e) {
       console.log("Failed to use the argument pattern file");
       console.log(e);
@@ -599,23 +718,23 @@ class BdpTaskAdapter extends IAdapter {
     }
   }
 
-
   /**
    * @async
-   * @function BdpTaskAdapter~_addTasks
-   * @description An async function that construct each task object in the this.taskLogs
-   * @returns {TaskDefinition[]} This process should fill the `this.taskLog` object with each process.
+   * @private
+   * @function BdpTaskAdapter~#_addJobs
+   * @description An async function that construct each task object in the this.jobStore
+   * @returns {JobDefinition[]} This process should fill the `this.taskLog` object with each process.
    */
-  async _addTasks(tasks) {
-    const returnTaskObjs = [];
-    const loadedTaskIndices = Object.keys(this.taskLogs);
+  async #_addJobs(tasks) {
+    const returnJobObjs = [];
+    const loadedJobIds = Object.keys(this.#jobStore);
     for (let i = 0; i < tasks.length; i ++) {
       const eachTask = tasks[i];
-      const taskID = uniqid(dashify(eachTask.name, { condense: true }) + "-");
+      const jobId = uniqid(dashify(eachTask.name, { condense: true }) + "-");
       const taskOption = Object.assign({}, this.options, eachTask.option);
-      const eachTaskObj = {
+      const eachJobObj = {
         taskName: eachTask.name,
-        taskID: taskID,
+        jobId: jobId,
         pid: null,
         image: eachTask.image,
         exec: eachTask.exec,
@@ -625,72 +744,92 @@ class BdpTaskAdapter extends IAdapter {
         command: eachTask.exec + " " + eachTask.args.join(" ") + "\n",
         start: null,
         end: null,
-        stdout: path.resolve(taskOption.taskLogFolder, eachTask.name, taskID + "-stdout.txt"),
-        stderr: path.resolve(taskOption.taskLogFolder, eachTask.name, taskID + "-stderr.txt"),
+        stdout: path.resolve(taskOption.taskLogFolder, eachTask.name, jobId + "-stdout.txt"),
+        stderr: path.resolve(taskOption.taskLogFolder, eachTask.name, jobId + "-stderr.txt"),
         cpus: taskOption.cpus,
         mem: taskOption.mem,
         nodes: taskOption.nodes,
         exitCode: null,
         taskArgs: eachTask.args,
-        option: taskOption
+        option: taskOption,
+        proxy: process.env.BDP_PROXY_ENABLED === 'true' && eachTask.proxy ? Object.assign({}, {
+          ip: process.env.BDP_PROXY_IP,
+          port: process.env.BDP_PROXY_PORT,
+          protocol: process.env.BDP_PROXY_PROTOCOL,
+          pathRewrite: process.env.BDP_PROXY_PATHREWRITE == 'true' ? true : false,
+          entryPath: process.env.BDP_PROXY_ENTRYPATH,
+        }, eachTask.proxy) : null
       };
       const taskArgString = eachTask.args
                             .filter(a => (a ? true : false))
                             .map(a => (a && a.replace ? a.replace(/\n/g, "  ") : ""))
                             .join(" ");
       let isLoaded = false;
-      for (let j = 0; j < loadedTaskIndices.length; j ++) {
-        const eachLoadedTaskID = loadedTaskIndices[j];
-        const loadedTaskObj = this.taskLogs[eachLoadedTaskID];
-        if (taskArgString === loadedTaskObj.taskArgs &&
-            eachTask.name === loadedTaskObj.taskName &&
-            eachTask.image == loadedTaskObj.image &&
-            eachTask.exec === loadedTaskObj.exec) {
-          // let theUpdatedTaskObj = Object.assign({}, eachTaskObj, loadedTaskObj);
-          eachTaskObj.taskArgs = eachTask.args;
-          eachTaskObj.taskID = loadedTaskObj.taskID;
-          eachTaskObj.option = taskOption;
-          const theUpdatedTaskObj = await this.taskOverrides(eachTaskObj);
-          theUpdatedTaskObj.pid = loadedTaskObj.pid;
-          theUpdatedTaskObj.taskName = loadedTaskObj.taskName;
-          theUpdatedTaskObj.exitCode = loadedTaskObj.exitCode;
-          theUpdatedTaskObj.stdout = loadedTaskObj.stdout;
-          theUpdatedTaskObj.stderr = loadedTaskObj.stderr;
-          theUpdatedTaskObj.start = loadedTaskObj.start;
-          theUpdatedTaskObj.end = loadedTaskObj.end;
-          theUpdatedTaskObj.option = taskOption;
-          if (loadedTaskObj.exitCode == 0 || (loadedTaskObj.start !== null && loadedTaskObj.end == null )) {
-            // For tasks that will not be executed again, use the original settings;
-            theUpdatedTaskObj.cpus = loadedTaskObj.cpus;
-            theUpdatedTaskObj.mem = loadedTaskObj.mem;
-            theUpdatedTaskObj.nodes = loadedTaskObj.nodes;
+      for (let j = 0; j < loadedJobIds.length; j ++) {
+        const eachLoadedJobId = loadedJobIds[j];
+        const loadedJobObj = this.getJobById(eachLoadedJobId);
+        if (taskArgString === loadedJobObj.taskArgs &&
+            eachTask.name === loadedJobObj.taskName &&
+            eachTask.image == loadedJobObj.image &&
+            eachTask.exec === loadedJobObj.exec) {
+          eachJobObj.taskArgs = eachTask.args;
+          eachJobObj.jobId = loadedJobObj.jobId;
+          eachJobObj.option = taskOption;
+          if (loadedJobObj.proxy && process.env.BDP_PROXY_ENABLED === 'true') {
+            eachJobObj.proxy = loadedJobObj.proxy;
+          } else if (!loadedJobObj.proxy && process.env.BDP_PROXY_ENABLED === 'true' && eachTask.proxy) {
+            eachJobObj.proxy = Object.assign({}, {
+              ip: process.env.BDP_PROXY_IP,
+              port: process.env.BDP_PROXY_PORT,
+              protocol: process.env.BDP_PROXY_PROTOCOL,
+              pathRewrite: process.env.BDP_PROXY_PATHREWRITE == 'true' ? true : false,
+              entryPath: process.env.BDP_PROXY_ENTRYPATH,
+            }, eachTask.proxy);
+          } else {
+            eachJobObj.proxy = null;
           }
-          this.taskLogs[eachLoadedTaskID] = theUpdatedTaskObj;
-          loadedTaskIndices.splice(j, 1);
-          returnTaskObjs.push(this.taskLogs[eachLoadedTaskID]);
+          const theUpdatedJobObj = await this.jobOverrides(eachJobObj);
+          theUpdatedJobObj.pid = loadedJobObj.pid;
+          theUpdatedJobObj.taskName = loadedJobObj.taskName;
+          theUpdatedJobObj.exitCode = loadedJobObj.exitCode;
+          theUpdatedJobObj.stdout = loadedJobObj.stdout;
+          theUpdatedJobObj.stderr = loadedJobObj.stderr;
+          theUpdatedJobObj.start = loadedJobObj.start;
+          theUpdatedJobObj.end = loadedJobObj.end;
+          theUpdatedJobObj.option = taskOption;
+          if (loadedJobObj.exitCode == 0 || (loadedJobObj.start !== null && loadedJobObj.end == null )) {
+            // For tasks that will not be executed again, use the original settings;
+            theUpdatedJobObj.cpus = loadedJobObj.cpus;
+            theUpdatedJobObj.mem = loadedJobObj.mem;
+            theUpdatedJobObj.nodes = loadedJobObj.nodes;
+          }
+          this.#jobStore[eachLoadedJobId] = theUpdatedJobObj;
+          loadedJobIds.splice(j, 1);
+          returnJobObjs.push(this.#jobStore[eachLoadedJobId]);
           isLoaded = true;
           break;
         }
       }
       if (!isLoaded) {
-        this.taskLogs[taskID] = await this.taskOverrides(eachTaskObj);
-        returnTaskObjs.push(this.taskLogs[taskID]);
+        this.#jobStore[jobId] = await this.jobOverrides(eachJobObj);
+        returnJobObjs.push(this.#jobStore[jobId]);
       }
     }
-    return returnTaskObjs;
+    return returnJobObjs;
   }
 
   /**
    * @async
-   * @function BdpTaskAdapter~_checkStatus
+   * @private
+   * @function BdpTaskAdapter~#_checkStatus
    * @description
    * This function checks job status and return the latest status object.
-   * If finished/exited jobs detected, emit finish/error event on the this.runningTasks[jobID] eventEmitter.
+   * If finished/exited jobs detected, emit finish/error event on the this.runningJobs[jobID] eventEmitter.
    * @return {BatchStatus} The updated batch status.
    */
-  async _checkStatus() {
-    const runningTaskIDs = Object.keys(this.runningTasks);
-    const allTaskIDs = Object.keys(this.taskLogs);
+  async #_checkStatus() {
+    const jobIDs = [...this.runningJobs.keys()];
+    const allJobIDs = Object.keys(this.#jobStore);
     const currentStatus = {
       pending: 0,
       queued: 0,
@@ -701,21 +840,21 @@ class BdpTaskAdapter extends IAdapter {
       others: [],
       total: 0
     };
-    currentStatus.queued = runningTaskIDs.filter(jobID => !this.runningTasks[jobID].isRunning).length;
-    currentStatus.running = runningTaskIDs.length - currentStatus.queued;
-    currentStatus.total = allTaskIDs.length - allTaskIDs.filter(jobID => !this.taskLogs[jobID].option).length;
-    for(let i = 0; i < allTaskIDs.length; i ++) {
-      const taskID = allTaskIDs[i];
-      const taskObj = this.taskLogs[taskID];
-      if (!taskObj.option) { continue; }
-      if (!taskObj.start) {
+    currentStatus.queued = jobIDs.filter(jobID => !this.runningJobs.get(jobID)?.isRunning).length;
+    currentStatus.running = jobIDs.length - currentStatus.queued;
+    currentStatus.total = allJobIDs.length - allJobIDs.filter(jobID => !this.#jobStore[jobID].option).length;
+    for(let i = 0; i < allJobIDs.length; i ++) {
+      const jobId = allJobIDs[i];
+      const jobObj = this.#jobStore[jobId];
+      if (!jobObj.option) { continue; }
+      if (!jobObj.start) {
         currentStatus.pending++;
-      } else if (!taskObj.end && !this.runningTasks[taskID]) {
+      } else if (!jobObj.end && !this.runningJobs.has(jobId)) {
         // the task began but haven't all finished
         // Has start timestamp and no end timestamp. Not running
         currentStatus.finishing++;
-      } else if (taskObj.end) {
-        if (taskObj.exitCode == 0) {
+      } else if (jobObj.end) {
+        if (jobObj.exitCode == 0) {
           currentStatus.done++;
         } else {
           currentStatus.exit++;
@@ -726,35 +865,37 @@ class BdpTaskAdapter extends IAdapter {
   }
 
   /**
-   * @function BdpTaskAdpater~_stopMonitor
+   * @private
+   * @function BdpTaskAdpater~#_stopMonitor
    * @description Calls clearTimeout to remove monitor timer. As the name suggests, this function stop monitoring jobs.
    */
-  _stopMonitor() {
+  #_stopMonitor() {
     if (monitorTimer) {clearTimeout(monitorTimer); }
   }
 
   /**
    * @async
-   * @function BdpTaskAdapter~_monitorTasks
+   * @private
+   * @function BdpTaskAdapter~#_monitorJobs
    * @description This function is used to monitor job status and periodically checks job status.
    * @param {} queue The real queue object to deal the `this.runProcess` function of each job.
    */
-  async _monitorTasks() {
-    this._stopMonitor();
+  async #_monitorJobs() {
+    this.#_stopMonitor();
     // let checkingCounts = 0;
     const monitor = async () => {
-      if (Object.keys(this.runningTasks).length === 0 && this.queue.jobs.length === 0) { return; }
+      if (this.runningJobs.size === 0 && this.queue.jobs.length === 0) { return; }
       try {
-        await this._writeTaskLogs();
+        await this.#_writeJobLogs();
         await this.detectJobStatus();
-        const currentStatus = await this._checkStatus();
+        const currentStatus = await this.#_checkStatus();
         for (const state of Object.keys(currentStatus)) {
           if (
             (state === "others" && currentStatus[state].length !== this.previousStatus[state].length) ||
             (state !== "others" && currentStatus[state] !== this.previousStatus[state])
           ) {
             if (this.options.batch) {
-              this.printStatus(currentStatus);
+              this._printStatus(currentStatus);
             }
             break;
           }
@@ -763,7 +904,7 @@ class BdpTaskAdapter extends IAdapter {
       } catch(e) {
         console.log(e);
       }
-      await this._monitorTasks();
+      await this.#_monitorJobs();
     };
     monitorTimer = setTimeout(() => monitor().catch(e => console.log(e)), this.options.updateInterval);
     return;
@@ -771,10 +912,11 @@ class BdpTaskAdapter extends IAdapter {
 
   /**
    * @async
-   * @function BdpTaskAdapter~_writeTaskLogs
+   * @private
+   * @function BdpTaskAdapter~#_writeJobLogs
    * @description Writing task progress to the the `progress-index.txt` file
    */
-  async _writeTaskLogs() {
+  async #_writeJobLogs() {
     if (this.progressIndexFS && this.progressIndexFS.end) {
       await new Promise((resolve) => this.progressIndexFS.end(() => {
         this.progressIndexFS = null;
@@ -786,27 +928,28 @@ class BdpTaskAdapter extends IAdapter {
       try {
         this.progressIndexFS = fse.createWriteStream(path.resolve(this.options.taskLogFolder, "progress-index.txt"));
         this.progressIndexFS.write("process\ttask name\tpid\timage\texec\targs\tcommand\tstdout\tstderr\t" +
-            "start time\tend time\tcpus\tmemory\tnodes\texit code\n");
-        const taskIDs = Object.keys(this.taskLogs);
-        for (const taskID of taskIDs) {
-          const taskObj = this.taskLogs[taskID];
+            "start time\tend time\tcpus\tmemory\tnodes\texit code\tproxy\n");
+        const jobIds = Object.keys(this.#jobStore);
+        for (const jobId of jobIds) {
+          const jobObj = this.#jobStore[jobId];
           const outputLogLineElems = [];
           outputLogLineElems.push.apply(outputLogLineElems, [
-            taskID
-            , taskObj.taskName
-            , taskObj.pid == null ? "null" : taskObj.pid
-            , taskObj.image || "null"
-            , taskObj.exec || "null"
-            , Array.isArray(taskObj.taskArgs) && taskObj.taskArgs ? taskObj.taskArgs.filter(a => a).map(a => (a && a.replace ? a.replace(/\n/g, "  ") : "")).join(" ") : taskObj.taskArgs
-            , (taskObj.command ? taskObj.command.replace(/\n/g, "  ") : "")
-            , taskObj.stdout || "null"
-            , taskObj.stderr || "null"
-            , taskObj.start ? new Date(taskObj.start).toString() : "null"
-            , taskObj.end ? new Date(taskObj.end).toString() : "null"
-            , taskObj.cpus
-            , taskObj.mem
-            , taskObj.nodes
-            , taskObj.exitCode === null ? "null" : taskObj.exitCode
+            jobId
+            , jobObj.taskName
+            , jobObj.pid == null ? "null" : jobObj.pid
+            , jobObj.image || "null"
+            , jobObj.exec || "null"
+            , Array.isArray(jobObj.taskArgs) && jobObj.taskArgs ? jobObj.taskArgs.filter(a => a).map(a => (a && a.replace ? a.replace(/\n/g, "  ") : "")).join(" ") : jobObj.taskArgs
+            , (jobObj.command ? jobObj.command.replace(/\n/g, "  ") : "")
+            , jobObj.stdout || "null"
+            , jobObj.stderr || "null"
+            , jobObj.start ? new Date(jobObj.start).toString() : "null"
+            , jobObj.end ? new Date(jobObj.end).toString() : "null"
+            , jobObj.cpus
+            , jobObj.mem
+            , jobObj.nodes
+            , jobObj.exitCode === null ? "null" : jobObj.exitCode
+            , jobObj.proxy === null ? "null" : JSON.stringify(jobObj.proxy)
           ]);
           if (this.progressIndexFS && this.progressIndexFS.write) {
             this.progressIndexFS.write(outputLogLineElems.join("\t") + "\n");
@@ -831,11 +974,12 @@ class BdpTaskAdapter extends IAdapter {
 
   /**
    * @async
-   * @function BdpTaskAdapter~_loadProcessIndex
+   * @private
+   * @function BdpTaskAdapter~#_loadProcessIndex
    * @description This function loads the index.txt file in the `options.taskLogFolder` to check if jobs are finished with the `exitCode` of 0 (normal exit).
    * If the job is finished, then it is skipped. This is used for pipeline resuming if the running pipelines stop unexpectedly.
    */
-  async _loadProcessIndex() {
+  async #_loadProcessIndex() {
     const taskIndexFile = path.resolve(this.options.taskLogFolder, "progress-index.txt");
     const taskIndexExists = await fse.pathExists(taskIndexFile);
     if (!taskIndexExists) {return false;}
@@ -847,11 +991,11 @@ class BdpTaskAdapter extends IAdapter {
         lineNumber ++;
         if (!line || !line.trim() || lineNumber === 1) { return; }
         const elements = line.split("\t");
-        const originalTaskID = elements[0];
+        const originalJobID = elements[0];
         const argumentString = elements[5];
         const exitCode = elements[14] == "null" || elements[14] == "" ? null : Number(elements[14]);
-        this.taskLogs[originalTaskID] = {
-          taskID: originalTaskID,
+        this.#jobStore[originalJobID] = {
+          jobId: originalJobID,
           taskName: elements[1],
           pid: elements[2] === "null" ? null : elements[2],
           image: elements[3] === "null" ? null : elements[3],
@@ -865,12 +1009,13 @@ class BdpTaskAdapter extends IAdapter {
           cpus: Number(elements[11]),
           mem: elements[12],
           nodes: elements[13],
-          exitCode: this.forceRerun ? null : exitCode
+          exitCode: this.forceRerun ? null : exitCode,
+          proxy: elements[15] == "null" | undefined ? null : JSON.parse(elements[15])
         }
         if (exitCode != 0 && exitCode !== null) {
-          this.taskLogs[originalTaskID].start = null;
-          this.taskLogs[originalTaskID].end = null;
-          this.taskLogs[originalTaskID].exitCode = null;
+          this.#jobStore[originalJobID].start = null;
+          this.#jobStore[originalJobID].end = null;
+          this.#jobStore[originalJobID].exitCode = null;
         }
       });
       rl.on("close", () => resolve());
@@ -879,53 +1024,75 @@ class BdpTaskAdapter extends IAdapter {
 
   /**
    * @async
-   * @function BdpTaskAdapter~_resumeRemoteTasks
+   * @private
+   * @function BdpTaskAdapter~#_resumeRemoteTasks
    * @description This function trying to fetch remote jobs. 
    * This is perticularly useful when adapter process somehow closed and re-run the same adapter process.
    * Instead of directly re-creation of non-fnihsing jobs, adapter trys to fetch the job histroy.
    * Then, the adapter can see if there is a need to re-submit jobs.
    */
-  async _resumeRemoteTasks() {
-    const taskIDs = Object.keys(this.taskLogs);
-    for (let i = 0; i < taskIDs.length; i ++) {
-      const taskID = taskIDs[i];
-      const taskObj = this.taskLogs[taskID];
+  async #_resumeRemoteTasks() {
+    const jobIds = Object.keys(this.#jobStore);
+    let batchCounter = 0;
+    for (let i = 0; i < jobIds.length; i ++) {
+      const jobId = jobIds[i];
+      const jobObj = this.#jobStore[jobId];
       // Only resume the started but not yet finished tasks.
-      if (taskObj.start !== null && taskObj.end == null && taskObj.option) {
-        const stdoeMode = taskObj.option.stdoeMode;
-        const stopOnError = taskObj.option.stopOnError;
+      if (jobObj.start !== null && jobObj.end == null && jobObj.option) {
+        const stdoeMode = jobObj.option.stdoeMode;
+        const stopOnError = jobObj.option.stopOnError;
         if (stdoeMode !== 'watch') {continue;}
-        this.runningTasks[taskID] = {
-          jobID: taskObj.pid, // The id that generted by the task executor (e.g. pid, the jobId from PBS, ...)
+        this.runningJobs.set(jobId, {
+          jobId: jobObj.pid, // The id that generted by the task executor (e.g. pid, the jobId from PBS, ...)
           stdoutStream: null, // The remote job does not use the pipe mode to stream the stdout/stderr stream.
           stderrStream: null,
-          taskEmitter: new EventEmitter(),
+          jobEmitter: new EventEmitter(),
           isRunning: false
-        };
-        const runtimeStdoe = {stdout: taskObj.stdout, stderr: taskObj.stderr};
-        const {stdoeWatcher, readFileSizes} = await __watchStdoeFiles(runtimeStdoe, taskObj.option.batch);
+        });
+        const runtimeStdoe = {stdout: jobObj.stdout, stderr: jobObj.stderr};
+        const {stdoeWatcher, readFileSizes} = await __watchStdoeFiles(runtimeStdoe, jobObj.option.batch);
         const fileHandler = {stdoutFS: null, stderrFS: null, stdoeWatcher: stdoeWatcher, readFileSizes: readFileSizes};
-        process.stderr.write(`[${new Date().toString()}] Resume watching the task ${taskObj.taskID}.` + "\n");
-        process.stderr.write(`[command] ${taskObj.command}` + "\n");
+        process.stderr.write(`[${new Date().toString()}] Resume watching the job ${jobObj.jobId}.` + "\n");
+        process.stderr.write(`[command] ${jobObj.command}` + "\n");
+        try {
+          jobObj.proxy = await this.determineJobProxy(jobObj);
+          jobObj.proxy = jobObj.proxy || null;
+          this.#_handleProxy(jobId, jobObj.proxy);
+        } catch (err) {
+          process.stderr.write(`[Task Adapter] Failed to run the determineJobProxy function to get the proxy object.`);
+          this.#_handleProxy(jobId);
+          jobObj.proxy = null;
+        }
         // ISSUE: For a very large tasks, using too many listerners will crash the adapter process.
         // TODO: dont push too many job Promise object here. Set the upper bound of the job number to monitor and then resolve this functions first.
         // Then, push the remaining job Promise object until the queue has hit the upper bound.
-
+        batchCounter ++;
+        if (batchCounter > 100) {
+          await sleep(1000);
+          batchCounter = 0;
+        }
         this.queue.push(() => {
           return new Promise((resolve, reject) => {
-            this.runningTasks[taskID].taskEmitter.on("finish", (exitCode, signal) => {
+            this.runningJobs.get(jobId).jobEmitter.on("finish", (exitCode, signal) => {
               (async () => {
-                await this._processBeforeExitCallback(taskID, fileHandler);
-                const exitObj = await this.processExitCallback(taskID, exitCode, signal);
-                await this._processAfterExitCallback(taskID, exitObj, runtimeStdoe);
+                await this.#_processBeforeExitCallback(jobId, fileHandler);
+                const exitObj = await this.jobExitCallback(jobObj, exitCode, signal);
+                await this.#_processAfterExitCallback(jobId, exitObj, runtimeStdoe);
                 return exitObj.exitCode == 0 ? resolve(0) : (stopOnError ? reject(exitObj.exitCode) : resolve(exitObj.exitCode));
               })().catch(err => reject(err));
             });
-            this.runningTasks[taskID].taskEmitter.on("error", (exitCode, signal) => {
+            this.runningJobs.get(jobId).jobEmitter.on("error", (exitCode, signal) => {
               (async () => {
-                await this._processBeforeExitCallback(taskID, fileHandler);
-                const exitObj = await this.processExitCallback(taskID, exitCode, signal);
-                await this._processAfterExitCallback(taskID, exitObj, runtimeStdoe);
+                await this.#_processBeforeExitCallback(jobId, fileHandler);
+                const exitObj = await this.jobExitCallback(jobObj, exitCode, signal);
+                await this.#_processAfterExitCallback(jobId, exitObj, runtimeStdoe);
+                if (this.options.retryMode === 'eager') {
+                  if (!jobObj.retry) { jobObj.retry = 0; }
+                  jobObj.retry ++;
+                  if (jobObj.retry <= this.options.retry) {
+                    this.queue.push(() => this.#_runJob(jobId));
+                  }
+                }
                 return stopOnError ? reject(exitObj.exitCode) : resolve(exitObj.exitCode);
               })().catch(err =>reject(err));
             });
@@ -937,71 +1104,85 @@ class BdpTaskAdapter extends IAdapter {
   
   /**
    * @async
-   * @function BdpTaskAdapter~_runTasks
+   * @private
+   * @function BdpTaskAdapter~#_runTasks
    * @description The core function to initiate the queue to process tasks.
    */
-  async _runTasks() {
-    const taskLogs = this.taskLogs;
+  async #_runTasks() {
+    const jobs = this.#jobStore;
     const options = this.options;
     /**
-     * The unfinished tasks are already executed by _resumeRemoteTasks (stdoeMode === 'watch'). These tasks are already in this.runningTasks
-     * Only executed tasks that are not yet finished (exitCode == 0) and not in the runningTasks.
+     * The unfinished tasks are already executed by #_resumeRemoteTasks (stdoeMode === 'watch'). These tasks are already in this.runningJobs
+     * Only executed tasks that are not yet finished (exitCode == 0) and not in the runningJobs.
      */
-    const taskIDs = Object.keys(taskLogs).filter(taskID => taskLogs[taskID].exitCode != 0 && !this.runningTasks[taskID] && this.taskLogs[taskID].option);
-    if (taskIDs.length > 4 && options.concurrency > 4) {
+    const jobIds = Object.keys(jobs).filter(jobId => jobs[jobId].exitCode != 0 && !this.runningJobs.has(jobId) && this.#jobStore[jobId].option);
+    if (jobIds.length > 4 && options.concurrency > 4) {
       process.stderr.write("Force to the batch mode due to more than 3 concurrent tasks.\n");
       this.options.batch = true;
     }
     this.queue.concurrency = options.concurrency || 1;
     this.queue.autostart = false;
-    for (const taskID of taskIDs) {
-      this.queue.push(() => this._runProcess(taskID));
+    for (const jobId of jobIds) {
+      this.queue.push(() => this.#_runJob(jobId));
     }
-    this._monitorTasks().catch(e => console.log(e));
+    this.#_monitorJobs().catch(e => console.log(e));
     return new Promise((resolve, reject) => {
       this.queue.start(err => {
-        this._stopMonitor();
+        this.#_stopMonitor();
         isStopping = true;
         if (err) {
-          process.stderr.write(`[${new Date().toString()}] Task queue ends with error: ${err}.` + "\n");
-          if (options.stopOnError || err === "SIGTERM") {
+          process.stderr.write(`[${new Date().toString()}] Task queue ends with ${err}.` + "\n");
+          if (options.stopOnError || err === "SIGTERM" || err === "SIGINT") {
             (async () => {
               process.stderr.write(`[${new Date().toString()}] Begining task cleanups...` + "\n");
-              await this.beforeExit();
-              if (options.debug) {
-                process.stderr.write(`[${new Date().toString()}] beforeExit() finished.` + "\n");
+              if (err !== 'SIGINT') {
+                await this.beforeExit();
+                if (options.debug) {
+                  process.stderr.write(`[${new Date().toString()}] beforeExit() finished.` + "\n");
+                }
               }
-              await sleep(3000);
               if (this.options.stdoeMode === 'watch') {
                 process.stderr.write(`[${new Date().toString()}] Fetch job status...` + "\n");
                 await this.detectJobStatus();
-                const status = await this._waitingJobStatus(125000, true);
-                if (status === 'timeout') {
-                  process.stderr.write(`[${new Date().toString()}] Fetching timeout. ` + "\n");
-                } else {
-                  process.stderr.write(`[${new Date().toString()}] Fetching jobs fnished.` + "\n");
+                if (err !== "SIGINT") {
+                  const status = await this.#_waitingJobStatus(125000, true);
+                  if (status === 'timeout') {
+                    process.stderr.write(`[${new Date().toString()}] Fetching timeout. ` + "\n");
+                  } else {
+                    process.stderr.write(`[${new Date().toString()}] Fetching jobs fnished.` + "\n");
+                  }
                 }
+              } else {
+                while (this.runningJobs.size > 0) { await sleep(500); }
               }
               /**
                * TODO: should wait until all jobs to be fully stopped!! Wait all processedAfterCallback to be finished?
                */
-              process.stderr.write(`[${new Date().toString()}] Writing task logs...` + "\n");
-              await this._writeTaskLogs();
+              process.stderr.write(`[${new Date().toString()}] Writing job logs...` + "\n");
+              await this.#_writeJobLogs();
             })().catch((e) => console.log(e)).finally(() => {
-              process.stderr.write(`[${new Date().toString()}] Finished cleaning tasks ...` + "\n");
-              reject(err);
+              const nonNormalExitNumber = Object.keys(jobs).filter(jobId => jobs[jobId].exitCode != 0 && this.#jobStore[jobId].option).length;
+              if (nonNormalExitNumber > 0) {
+                process.stderr.write(`[${new Date().toString()}] Task queue ends with ${err}, and some tasks have exit code !== 0.` + "\n");
+                process.stderr.write(`[${new Date().toString()}] Finished cleaning tasks ...` + "\n");
+                reject(err);
+              } else {
+                process.stderr.write(`[${new Date().toString()}] Task queue ends with ${err}, and all tasks have exit code == 0.` + "\n");
+                process.stderr.write(`[${new Date().toString()}] Finished cleaning tasks ...` + "\n");
+                resolve(err);
+              }
             });
           } else {
             reject(err);
           }
         } else {
-          const nonNormalExitNumber = Object.keys(taskLogs).filter(taskID => taskLogs[taskID].exitCode != 0 && this.taskLogs[taskID].option).length;
+          const nonNormalExitNumber = Object.keys(jobs).filter(jobId => jobs[jobId].exitCode != 0 && this.#jobStore[jobId].option).length;
           if (nonNormalExitNumber > 0) {
             process.stderr.write(`[${new Date().toString()}] Task queue ends without error, but some tasks have exit code !== 0.` + "\n");
             (async () => {
               await this.beforeExit();
               process.stderr.write(`[${new Date().toString()}] Writing task logs...` + "\n");
-              await this._writeTaskLogs();
+              await this.#_writeJobLogs();
               reject(`There are ${nonNormalExitNumber} job(s) failed (exitCode !== 0).`);
             })().catch((e) => console.log(e)).finally(() => reject(`There are ${nonNormalExitNumber} job(s) failed (exitCode !== 0).`));
           } else {
@@ -1015,20 +1196,22 @@ class BdpTaskAdapter extends IAdapter {
 
   /**
    * @async
-   * @function BdpTaskAdapter~_waitingJobStatus
+   * @private
+   * @function BdpTaskAdapter~#_waitingJobStatus
    * @param {*} timeout
-   * @description This internal function waits until all taskObj are resolved (having their own exit codes).
+   * @description This internal function waits until all job object are resolved (having their own exit codes).
    */
-  async _waitingJobStatus(timeout, makeEnding) {
+  async #_waitingJobStatus(timeout, makeEnding) {
     let isTimeout = false, isAllResolved = false;
     const theTimeout = timeout || 120000;
     setTimeout(() => isTimeout = true, theTimeout);
     while(!isTimeout && !isAllResolved) {
-      const taskIDs = Object.keys(this.taskLogs);
+      const jobIds = Object.keys(this.#jobStore);
       isAllResolved = true;
-      for (let i = 0; i < taskIDs.length; i ++) {
-        const taskObj = this.taskLogs[taskIDs[i]];
-        if (taskObj.exitCode === null || taskObj.exitCode === undefined) {
+      await this.detectJobStatus();
+      for (let i = 0; i < jobIds.length; i ++) {
+        const jobObj = this.#jobStore[jobIds[i]];
+        if (jobObj.exitCode === null || jobObj.exitCode === undefined) {
           isAllResolved = false;
         }
         break;
@@ -1036,12 +1219,12 @@ class BdpTaskAdapter extends IAdapter {
       await sleep(1000);
     }
     if (isTimeout && makeEnding) {
-      const taskIDs = Object.keys(this.taskLogs);
-      for (let i = 0; i < taskIDs.length; i ++) {
-        const taskObj = this.taskLogs[taskIDs[i]];
-        if (taskObj.exitCode === null || taskObj.exitCode === undefined) {
-          taskObj.end = new Date().valueOf();
-          taskObj.exitCode = 4;
+      const jobIds = Object.keys(this.#jobStore);
+      for (let i = 0; i < jobIds.length; i ++) {
+        const jobObj = this.#jobStore[jobIds[i]];
+        if (jobObj.exitCode === null || jobObj.exitCode === undefined) {
+          jobObj.end = new Date().valueOf();
+          jobObj.exitCode = 4;
         }
       }
     }
@@ -1051,7 +1234,7 @@ class BdpTaskAdapter extends IAdapter {
   /**
    * @function BdpTaskAdapter#initialize
    * @returns {TaskAdapterInstance} An object that can be directly used by the developers. Used to run batch jobs.
-   * @description This function must be called to get the Adapter object instance.
+   * @description This function initializes the whole adapter process and must be called to get the Adapter object instance.
    */
   initialize() {
     if (globalReadlineInterface) {
@@ -1066,17 +1249,17 @@ class BdpTaskAdapter extends IAdapter {
         if (line === "bdp stop task") {
           this.queue.stop();
           isStopping = true;
-          this._stopMonitor();
+          this.#_stopMonitor();
           process.stderr.write(`[${new Date().toString()}] bdp-task-adapter recieving the workaround stop signal.`+ "\n");
-          process.stderr.write(`[${new Date().toString()}] Removing the task queue ...` + "\n");
+          process.stderr.write(`[${new Date().toString()}] Removing the job queue ...` + "\n");
           this.queue.end("SIGTERM");
-          /*
-          if (this.queue.length > 0) {
-            this.queue.end(1);
-          } else {
-            this.beforeExit().catch(e => console.log(e)).finally(() => process.exit(1));
-          }
-          */
+        } else if (line === "bdp stop task with SIGINT") {
+          this.queue.stop();
+          isStopping = true;
+          this.#_stopMonitor();
+          process.stderr.write(`[${new Date().toString()}] bdp-task-adapter recieving the workaround stop signal with SIGINT.`+ "\n");
+          process.stderr.write(`[${new Date().toString()}] Removing the job queue ...` + "\n");
+          this.queue.end('SIGINT');
         }
       });
     });
@@ -1085,7 +1268,7 @@ class BdpTaskAdapter extends IAdapter {
       // SIGINT no longer stop the running tasks.;
       this.queue.stop();
       isStopping = true;
-      this._stopMonitor();
+      this.#_stopMonitor();
       this.exitSignalCount ++;
       process.stderr.write(`[${new Date().toString()}] bdp-task-adapter recieving the SIGINT signal.` +  "\n");
       if (this.exitSignalCount >= 5) {
@@ -1093,36 +1276,33 @@ class BdpTaskAdapter extends IAdapter {
         process.stderr.write('You may need to do some clean ups manually for the stopped jobs.\n');
         process.exit(1);
       }
-      (async () => {
-        if (this.options.stdoeMode === 'watch') {
-          process.stderr.write(`[${new Date().toString()}] Fetch job status...` + "\n");
-          await this.detectJobStatus();
-          await sleep(10000);
-          process.stderr.write(`[${new Date().toString()}] Writing task logs...` + "\n");
-          await this._writeTaskLogs();
-        } else {
-          this.queue.end('SIGTERM');
-        }
-      })().catch((e) => console.log(e)).finally(() => {
-        process.exit(1);
-      });
+      this.queue.end('SIGINT');
     });
     process.removeAllListeners("SIGTERM");
     process.on("SIGTERM", () => {
       this.queue.stop();
       isStopping = true;
-      this._stopMonitor();
+      this.#_stopMonitor();
       this.exitSignalCount ++;
       process.stderr.write(`[${new Date().toString()}] bdp-task-adapter recieving the SIGTERM signal.` + "\n");
       if (this.exitSignalCount >= 5) {
-        process.stderr.write('More than 5 SIGINT signals were recieved. Forcing this process to stop.');
+        process.stderr.write('More than 5 SIGTERM signals were recieved. Forcing this process to stop.');
         process.stderr.write('You may need to do some clean ups for the stopped jobs.');
         process.exit(1);
       }
-      process.stderr.write(`[${new Date().toString()}] Removing the task queue ...` + "\n");
+      process.stderr.write(`[${new Date().toString()}] Removing the job queue ...` + "\n");
       this.queue.end("SIGTERM");
     });
-
+    process.on("message", msgObj => {
+      if (!msgObj) { return; }
+      if (msgObj.source !== 'bdp-server') { return; }
+      (async () => {
+        switch (msgObj.action) {
+          case 'rejectProxy':
+            break;
+        }
+      })().catch(console.log);
+    });
     return {
       getOptions: () => {
         return this.options;
@@ -1131,17 +1311,17 @@ class BdpTaskAdapter extends IAdapter {
         (async () => {
           try {
             if (Array.isArray(tasks)) {
-              await this._addTasks(tasks);
+              await this.#_addJobs(tasks);
             }
-            const taskNames = Object.keys(this.taskLogs);
+            const taskNames = Object.keys(this.#jobStore);
             if (taskNames.length <= 0) {
               throw "No task to proceed.\n";
             }
             isStopping = false;
             await this.beforeStart();
-            await this._writeTaskLogs();
-            await this._runTasks();
-            await this._writeTaskLogs();
+            await this.#_writeJobLogs();
+            await this.#_runTasks();
+            await this.#_writeJobLogs();
             await this.beforeExit();
             process.stderr.write(`[${new Date().toString()}] Finished.` + "\n");
             process.exit(0);
@@ -1152,42 +1332,41 @@ class BdpTaskAdapter extends IAdapter {
         })();
       },
       addTasks: async (tasks) => {
-        await this._addTasks(tasks);
+        await this.#_addJobs(tasks);
       },
       execute: async tasks => {
         try {
           isStopping = false;
-          // await this._loadProcessIndex();
-          await this._loadProcessIndex();
-          if (Array.isArray(tasks)) {await this._addTasks(tasks);}
-          if (Object.keys(this.taskLogs).length <= 0) {throw "No task to proceed.\n";}
-          await this._writeTaskLogs();
-          await this._resumeRemoteTasks();
+          await this.#_loadProcessIndex();
+          if (Array.isArray(tasks)) {await this.#_addJobs(tasks);}
+          if (Object.keys(this.#jobStore).length <= 0) {throw "No task to proceed.\n";}
+          await this.#_writeJobLogs();
+          await this.#_resumeRemoteTasks();
           await this.beforeStart();
-          await this._writeTaskLogs();
+          await this.#_writeJobLogs();
           let success = false;
           let retry = 0;
-          while (!success && retry <= this.options.retry) {
+          while (!success && retry <= this.options.retry && this.options.retryMode === 'normal') {
             try {
               if (retry > 0) {
-                process.stderr.write(`[${new Date().toString()}] Retry failed tasks (${retry} time${retry > 1 ? 's' : ''}).` + "\n");
+                process.stderr.write(`[${new Date().toString()}] Retry failed jobs (${retry} time${retry > 1 ? 's' : ''}).` + "\n");
                 await this.beforeStart();
               }
-              await this._runTasks();
+              await this.#_runTasks();
               success = true;
             }catch(e) {
               retry ++;
               isStopping = false;
-              if (e === 'SIGTERM') { throw e; }
+              if (e === 'SIGTERM' || e === 'SIGINT') { throw e; }
               process.stderr.write(`[${new Date().toString()}] ${e}` + "\n");
               if (retry > this.options.retry) {
-                process.stderr.write(`[${new Date().toString()}] Tasks failed after ${retry - 1} re-run(s).` + "\n");
-                await this._writeTaskLogs();
+                process.stderr.write(`[${new Date().toString()}] Task failed after ${retry - 1} re-run(s).` + "\n");
+                await this.#_writeJobLogs();
                 throw e;
               }
             }
           }
-          await this._writeTaskLogs();
+          await this.#_writeJobLogs();
           await this.beforeExit();
           process.stderr.write(`[${new Date().toString()}] Task execution finished.` + "\n");
         } catch(e) {
