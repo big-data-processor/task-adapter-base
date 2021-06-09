@@ -238,6 +238,15 @@ class IAdapter {
 
   /**
    * @async
+   * @function IAdapter#stopAllJobs
+   * @description This functions are required to stop all running jobs
+   */
+  async stopAllJobs() {
+
+  }
+  
+  /**
+   * @async
    * @function IAdapter#beforeExit
    * @description An async function that cleanup all resources before exit the Adapter process and after all jobs are finished or errored.
    *
@@ -481,6 +490,16 @@ class BdpTaskAdapter extends IAdapter {
    */
   getJobById(jobId) {
     return this.#jobStore[jobId];
+  }
+
+  /**
+   * @funciton BdpTaskAdapter#getAllJobIds
+   * @returns {string[]} Returns all job Ids.
+   * @memberof BdpTaskAdapter
+   * @description This function returns all jobIds.
+   */
+   getAllJobIds() {
+    return Object.keys(this.#jobStore);
   }
 
   /**
@@ -1146,9 +1165,15 @@ class BdpTaskAdapter extends IAdapter {
             (async () => {
               process.stderr.write(`[${new Date().toString()}] Begining task cleanups...` + "\n");
               if (err !== 'SIGINT' || this.options.stdoeMode !== 'watch') {
-                await this.beforeExit();
-                if (options.debug) {
-                  process.stderr.write(`[${new Date().toString()}] beforeExit() finished.` + "\n");
+                try {
+                  await this.stopAllJobs();
+                  if (options.debug) {
+                    process.stderr.write(`[${new Date().toString()}] stopAllJobs() finished.` + "\n");
+                  }
+                } catch(err) {
+                  console.log(`Failed to stopAllJobs().`);
+                  console.log(err);
+                  reject(err);
                 }
               }
               if (this.options.stdoeMode === 'watch') {
@@ -1190,7 +1215,16 @@ class BdpTaskAdapter extends IAdapter {
           if (nonNormalExitNumber > 0) {
             process.stderr.write(`[${new Date().toString()}] Task queue ends without error, but some tasks have exit code !== 0.` + "\n");
             (async () => {
-              await this.beforeExit();
+              try {
+                await this.stopAllJobs();
+                if (options.debug) {
+                  process.stderr.write(`[${new Date().toString()}] stopAllJobs() finished.` + "\n");
+                }
+              } catch(err) {
+                console.log(`Failed to stopAllJobs().`);
+                console.log(err);
+                reject(err);
+              }
               process.stderr.write(`[${new Date().toString()}] Writing task logs...` + "\n");
               await this.#_writeJobLogs();
               reject(`There are ${nonNormalExitNumber} job(s) failed (exitCode !== 0).`);
@@ -1314,36 +1348,6 @@ class BdpTaskAdapter extends IAdapter {
       })().catch(console.log);
     });
     return {
-      getOptions: () => {
-        return this.options;
-      },
-      run: tasks => {
-        (async () => {
-          try {
-            if (Array.isArray(tasks)) {
-              await this.#_addJobs(tasks);
-            }
-            const taskNames = Object.keys(this.#jobStore);
-            if (taskNames.length <= 0) {
-              throw "No task to proceed.\n";
-            }
-            isStopping = false;
-            await this.beforeStart();
-            await this.#_writeJobLogs();
-            await this.#_runTasks();
-            await this.#_writeJobLogs();
-            await this.beforeExit();
-            process.stderr.write(`[${new Date().toString()}] Finished.` + "\n");
-            process.exit(0);
-          } catch (e) {
-            console.log(e);
-            process.exit(1);
-          }
-        })();
-      },
-      addTasks: async (tasks) => {
-        await this.#_addJobs(tasks);
-      },
       execute: async tasks => {
         try {
           isStopping = false;
@@ -1360,7 +1364,7 @@ class BdpTaskAdapter extends IAdapter {
             try {
               if (retry > 0) {
                 process.stderr.write(`[${new Date().toString()}] Retry failed jobs (${retry} time${retry > 1 ? 's' : ''}).` + "\n");
-                await this.beforeStart();
+                // await this.beforeStart();
               }
               await this.#_runTasks();
               success = true;
@@ -1377,18 +1381,21 @@ class BdpTaskAdapter extends IAdapter {
             }
           }
           await this.#_writeJobLogs();
-          await this.beforeExit();
+          await this.beforeExit(); // This is used to clean the resources after finishing all jobs
           process.stderr.write(`[${new Date().toString()}] Task execution finished.` + "\n");
         } catch(e) {
-          console.log(`Execute finish: ${e}`);
+          if (e === 'SIGTERM') {
+            try {
+              await this.beforeExit();
+            } catch(err) {
+              console.log(`Failed to run beforeExit().`);
+              console.log(err);
+              console.log(`Execute finish: ${e}`);
+            }
+          }
+          process.stderr.write(`[${new Date().toString()}] Task execution finished with ${e}.` + "\n");
           throw e;
         }
-      },
-      stop: async () => {
-        if (this.queue && this.queue.stop) {
-          this.queue.end(1);
-        }
-        await this.beforeExit();
       }
     };
   }
