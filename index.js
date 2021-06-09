@@ -610,6 +610,10 @@ class BdpTaskAdapter extends IAdapter {
       const stderrExists = await fse.pathExists(jobObj.stderr);
       if (stderrExists) {await fse.remove(jobObj.stderr);}
     }
+    jobObj.stdout = path.join(jobObj.option.taskLogFolder, jobObj.taskName, jobId + "-stdout.txt").replace(/\\/g, "/");
+    jobObj.stderr = path.join(jobObj.option.taskLogFolder, jobObj.taskName, jobId + "-stderr.txt").replace(/\\/g, "/");
+    await fse.ensureFile(jobObj.stdout);
+    await fse.ensureFile(jobObj.stderr);
     const runningJob = await this.jobDeploy(jobObj);
     jobObj.start = startTime;
     jobObj.end = null;
