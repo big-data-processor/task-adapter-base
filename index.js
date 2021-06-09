@@ -241,9 +241,7 @@ class IAdapter {
    * @function IAdapter#stopAllJobs
    * @description This functions are required to stop all running jobs
    */
-  async stopAllJobs() {
-
-  }
+  async stopAllJobs() {}
   
   /**
    * @async
@@ -498,7 +496,7 @@ class BdpTaskAdapter extends IAdapter {
    * @memberof BdpTaskAdapter
    * @description This function returns all jobIds.
    */
-   getAllJobIds() {
+  getAllJobIds() {
     return Object.keys(this.#jobStore);
   }
 
