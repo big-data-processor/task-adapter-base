@@ -31,7 +31,7 @@ let cachedStatus;
  * @type {Object}
  * @description This the format that we store for each task item.
  * @property {string} taskName The job name in the task definitions
- * @property {string} jobID The auto-generated unique id which contains the taskName
+ * @property {string} jobId The auto-generated unique id which contains the taskName
  * @property {string} pid The jobID that is generated from the job running environment. (e.g. pid, pbs job ID, ...)
  * @property {string} image The image name in the task definitions
  * @property {string} exec The executable/command for the job in a container
@@ -380,12 +380,12 @@ class BdpTaskAdapter extends IAdapter {
 
 
   /**
-   * @function BdpTaskAdapter~_printStatus
+   * @function BdpTaskAdapter~#_printStatus
    * @param {BatchStatus} currentStatus The current status object with the fields {pending, queued, running, finishing, exit, done, total};
    * This function is used to print job progress in a batch task to stdout and stderr. You may customize this function for your prferred style.
    */
 
-  _printStatus({pending, queued, running, finishing, exit, done, total}) {
+  #_printStatus({pending, queued, running, finishing, exit, done, total}) {
     if (cachedStatus) {
       if (
         cachedStatus.pending === pending &&
@@ -574,7 +574,7 @@ class BdpTaskAdapter extends IAdapter {
     await (Promise.all(['stderr', 'stdout'].map(stdoe => this.#_fetchJobStdoe(jobObj, runtimeStdoe, stdoe))).catch(console.log));
     if (this.options.batch) {
       const status = await this.#_checkStatus();
-      this._printStatus(status);
+      this.#_printStatus(status);
     }
     if (this.options.debug) {
       process.stderr.write(`[${new Date().toString()}] ${jobId} #_jobAfterExitCallback() finished.` + "\n");
@@ -638,7 +638,7 @@ class BdpTaskAdapter extends IAdapter {
     if (stdoeMode === "pipe") { fileHandler.stderrFS.write(msg); }
     if (this.options.batch) {
       const status = await this.#_checkStatus();
-      this._printStatus(status);
+      this.#_printStatus(status);
     }
     try {
       jobObj.proxy = await this.determineJobProxy(jobObj);
@@ -901,7 +901,7 @@ class BdpTaskAdapter extends IAdapter {
             (state !== "others" && currentStatus[state] !== this.previousStatus[state])
           ) {
             if (this.options.batch) {
-              this._printStatus(currentStatus);
+              this.#_printStatus(currentStatus);
             }
             break;
           }
@@ -981,11 +981,11 @@ class BdpTaskAdapter extends IAdapter {
   /**
    * @async
    * @private
-   * @function BdpTaskAdapter~#_loadProcessIndex
+   * @function BdpTaskAdapter~#_loadProgress
    * @description This function loads the index.txt file in the `options.taskLogFolder` to check if jobs are finished with the `exitCode` of 0 (normal exit).
    * If the job is finished, then it is skipped. This is used for pipeline resuming if the running pipelines stop unexpectedly.
    */
-  async #_loadProcessIndex() {
+  async #_loadProgress() {
     const taskIndexFile = path.resolve(this.options.taskLogFolder, "progress-index.txt");
     const taskIndexExists = await fse.pathExists(taskIndexFile);
     if (!taskIndexExists) {return false;}
@@ -1031,13 +1031,13 @@ class BdpTaskAdapter extends IAdapter {
   /**
    * @async
    * @private
-   * @function BdpTaskAdapter~#_resumeRemoteTasks
+   * @function BdpTaskAdapter~#_resumeJobs
    * @description This function trying to fetch remote jobs. 
    * This is perticularly useful when adapter process somehow closed and re-run the same adapter process.
    * Instead of directly re-creation of non-fnihsing jobs, adapter trys to fetch the job histroy.
    * Then, the adapter can see if there is a need to re-submit jobs.
    */
-  async #_resumeRemoteTasks() {
+  async #_resumeJobs() {
     const jobIds = Object.keys(this.#jobStore);
     let batchCounter = 0;
     for (let i = 0; i < jobIds.length; i ++) {
@@ -1118,7 +1118,7 @@ class BdpTaskAdapter extends IAdapter {
     const jobs = this.#jobStore;
     const options = this.options;
     /**
-     * The unfinished tasks are already executed by #_resumeRemoteTasks (stdoeMode === 'watch'). These tasks are already in this.runningJobs
+     * The unfinished tasks are already executed by #_resumeJobs (stdoeMode === 'watch'). These tasks are already in this.runningJobs
      * Only executed tasks that are not yet finished (exitCode == 0) and not in the runningJobs.
      */
     const jobIds = Object.keys(jobs).filter(jobId => jobs[jobId].exitCode != 0 && !this.runningJobs.has(jobId) && this.#jobStore[jobId].option);
@@ -1343,11 +1343,11 @@ class BdpTaskAdapter extends IAdapter {
       execute: async tasks => {
         try {
           isStopping = false;
-          await this.#_loadProcessIndex();
+          await this.#_loadProgress();
           if (Array.isArray(tasks)) {await this.#_addJobs(tasks);}
           if (Object.keys(this.#jobStore).length <= 0) {throw "No task to proceed.\n";}
           await this.#_writeJobLogs();
-          await this.#_resumeRemoteTasks();
+          await this.#_resumeJobs();
           await this.beforeStart();
           await this.#_writeJobLogs();
           let success = false;

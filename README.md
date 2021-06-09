@@ -1,17 +1,17 @@
-# A base class of Task Adapter Big Data Processor.
+# A base class of Task Adapter for BD-Processor.
 ---
 This is a base class for developers to extend and implment for different computing resources.
 
 ([Click to view the jsDoc on Github Pages](https://big-data-processor.github.io/task-adapter-base/)).
 
 ## Task Adapter
-The Task Adapter is a core component in the Big Data Processor.
-Task Adpater processes are spawned when a Task is executed on Big Data Processor.
+The Task Adapter is a core component in the BD-Processor.
+Task Adpater processes are spawned when a Task is executed on BD-Processor.
 As shown in the following figure, adapter processes mange to deploy and monitor jobs on local or remote computing resources.
 
 <div align='center'>
     <img src="https://raw.githubusercontent.com/big-data-processor/assets/master/images/System%20Architecture.png" width="600"><br>
-    <b>System Architecture of Big Data Processor</b>
+    <b>System Architecture of BD-Processor</b>
 </div>
 
 
@@ -35,13 +35,13 @@ An adapter process does the following things.
 
 4. Recording job messages such as the stdout and stderr
 
-    In order to allow viewing job messages in real-time, the adapter reports the latest job messages to Big Data Processor.An adapter process captures job messages (stdout/stderr) based on the above mentioned modes. All jobs are organized well by the adapter.
+    In order to allow viewing job messages in real-time, the adapter reports the latest job messages to BD-Processor.An adapter process captures job messages (stdout/stderr) based on the above mentioned modes. All jobs are organized well by the adapter.
     Developers can customize different ways to captures the job messages or logs for different runtime environments.
 
 5. Resuming job executions
 
     An adapter process logs the progres of each job. If one of the jobs failed, the adapter process fails in the end.
-    If developers fixes their scripts or fixes task settings, it is very easy to rerun the adapter process on Big Data Processor.
+    If developers fixes their scripts or fixes task settings, it is very easy to rerun the adapter process on BD-Processor.
     The adapter process will try to resume unfinished jobs.
 
 
