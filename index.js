@@ -1346,6 +1346,9 @@ class BdpTaskAdapter extends IAdapter {
       })().catch(console.log);
     });
     return {
+      getOptions: () => {
+        return this.options;
+      },
       execute: async tasks => {
         try {
           isStopping = false;
