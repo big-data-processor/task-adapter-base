@@ -423,6 +423,16 @@ class BdpTaskAdapter extends IAdapter {
   }
 
   /**
+   * @member {boolean} BdpTaskAdapter~isStopping
+   * @readonly
+   * @description Using this property to understand whether the adapter is stopping.
+   * You may use it to prevent extra waiting in while loops.
+   */
+    get isStopping() {
+      return isStopping;
+    }
+
+  /**
    * @private
    * @function BdpTaskAdapter~#_sendMsgToBdpClient
    * @param {string} action The message action type. The current possible values are 'registerProxy' or 'unregisterProxy'.
