@@ -671,16 +671,16 @@ class BdpTaskAdapter extends IAdapter {
       const status = await this.#_checkStatus();
       this.#_printStatus(status);
     }
-    try {
+    (async () => {
       jobObj.proxy = await this.determineJobProxy(jobObj);
       jobObj.proxy = jobObj.proxy || null;
       this.#_handleProxy(jobId, jobObj.proxy);
-    } catch (err) {
+    })().catch(err => {
       console.log(err);
       process.stderr.write(`[Task Adapter] Failed to run the determineJobProxy function to get the proxy object. Unreigster the proxy.`);
       this.#_handleProxy(jobId);
       jobObj.proxy = null;
-    }
+    });
     return new Promise((resolve, reject) => {
       this.runningJobs.get(jobId).jobEmitter.on("finish", (exitCode, signal) => {
         (async () => {
@@ -1091,21 +1091,22 @@ class BdpTaskAdapter extends IAdapter {
         const fileHandler = {stdoutFS: null, stderrFS: null, stdoeWatcher: stdoeWatcher, readFileSizes: readFileSizes};
         process.stderr.write(`[${new Date().toString()}] Resume watching the job ${jobObj.jobId}.` + "\n");
         process.stderr.write(`[command] ${jobObj.command}` + "\n");
-        try {
+        (async () => {
           jobObj.proxy = await this.determineJobProxy(jobObj);
           jobObj.proxy = jobObj.proxy || null;
           this.#_handleProxy(jobId, jobObj.proxy);
-        } catch (err) {
+        })().catch(err => {
+          console.log(err);
           process.stderr.write(`[Task Adapter] Failed to run the determineJobProxy function to get the proxy object.`);
           this.#_handleProxy(jobId);
           jobObj.proxy = null;
-        }
+        });
         // ISSUE: For a very large tasks, using too many listerners will crash the adapter process.
         // TODO: dont push too many job Promise object here. Set the upper bound of the job number to monitor and then resolve this functions first.
         // Then, push the remaining job Promise object until the queue has hit the upper bound.
         batchCounter ++;
         if (batchCounter > 100) {
-          await sleep(1000);
+          await sleep(500);
           batchCounter = 0;
         }
         this.queue.push(() => {
