@@ -558,18 +558,18 @@ class BdpTaskAdapter extends IAdapter {
   }
 
   async #_fetchJobStdoe(jobObj, runtimeStdoe, stdoe) {
-    if (runtimeStdoe[stdoe] === jobObj[stdoe]) { return; }
+    if (path.resolve(runtimeStdoe[stdoe]) === path.resolve(jobObj[stdoe])) { return; }
     try {
       await fse.ensureFile(jobObj[stdoe]);
       let trialNumber = 1, runtimeStdoeExists = await fse.pathExists(runtimeStdoe[stdoe]);
-      while(!runtimeStderrExists && trialNumber <= 12) {
+      while(!runtimeStdoeExists && trialNumber <= 300) {
         await sleep(2000);
         runtimeStdoeExists = await fse.pathExists(runtimeStdoe[stdoe]);
-        if (runtimeStderrExists) { break; }
+        if (runtimeStdoeExists) { break; }
         trialNumber ++;
       }
       if (runtimeStdoeExists) {
-        await fse.move(runtimeStdoe.stderr, jobObj.stderr, { overwrite: true });
+        await fse.move(runtimeStdoe[stdoe], jobObj[stdoe], { overwrite: true });
       } else if (trialNumber > 12) {
         process.stderr.write(`The job (${jobObj.jobId}) does not have the ${stdoe} file after ${trialNumber - 1} times to check the file.` + "\n");
       }
