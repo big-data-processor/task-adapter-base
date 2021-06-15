@@ -32,7 +32,7 @@ let cachedStatus;
  * @description This the format that we store for each task item.
  * @property {string} taskName The job name in the task definitions
  * @property {string} jobId The auto-generated unique id which contains the taskName
- * @property {string} pid The jobID that is generated from the job running environment. (e.g. pid, pbs job ID, ...)
+ * @property {string} pid The jobId that is generated from the job running environment. (e.g. pid, pbs job ID, ...)
  * @property {string} image The image name in the task definitions
  * @property {string} exec The executable/command for the job in a container
  * @property {array} args The resolved arguments in the task definitions (These arguments were prepared for different run-time environments).
@@ -571,10 +571,10 @@ class BdpTaskAdapter extends IAdapter {
       if (runtimeStdoeExists) {
         await fse.move(runtimeStdoe.stderr, jobObj.stderr, { overwrite: true });
       } else if (trialNumber > 12) {
-        process.stderr.write(`The job (${jobId}) does not have the ${stdoe} file after ${trialNumber - 1} times to check the file.` + "\n");
+        process.stderr.write(`The job (${jobObj.jobId}) does not have the ${stdoe} file after ${trialNumber - 1} times to check the file.` + "\n");
       }
     } catch(err) {
-      process.stderr.write(`We failed to get the ${stdoe} file for the job (${jobId})` + '\n');
+      process.stderr.write(`We failed to get the ${stdoe} file for the job (${jobObj.jobId})` + '\n');
       console.log(err);
     }
   }
@@ -861,11 +861,11 @@ class BdpTaskAdapter extends IAdapter {
    * @function BdpTaskAdapter~#_checkStatus
    * @description
    * This function checks job status and return the latest status object.
-   * If finished/exited jobs detected, emit finish/error event on the this.runningJobs[jobID] eventEmitter.
+   * If finished/exited jobs detected, emit finish/error event on the this.runningJobs.get(jobId).jobEmitter eventEmitter.
    * @return {BatchStatus} The updated batch status.
    */
   async #_checkStatus() {
-    const jobIDs = [...this.runningJobs.keys()];
+    const jobIds = [...this.runningJobs.keys()];
     const allJobIDs = Object.keys(this.#jobStore);
     const currentStatus = {
       pending: 0,
@@ -877,9 +877,9 @@ class BdpTaskAdapter extends IAdapter {
       others: [],
       total: 0
     };
-    currentStatus.queued = jobIDs.filter(jobID => !this.runningJobs.get(jobID)?.isRunning).length;
-    currentStatus.running = jobIDs.length - currentStatus.queued;
-    currentStatus.total = allJobIDs.length - allJobIDs.filter(jobID => !this.#jobStore[jobID].option).length;
+    currentStatus.queued = jobIds.filter(jobId => !this.runningJobs.get(jobId)?.isRunning).length;
+    currentStatus.running = jobIds.length - currentStatus.queued;
+    currentStatus.total = allJobIDs.length - allJobIDs.filter(jobId => !this.#jobStore[jobId].option).length;
     for(let i = 0; i < allJobIDs.length; i ++) {
       const jobId = allJobIDs[i];
       const jobObj = this.#jobStore[jobId];
