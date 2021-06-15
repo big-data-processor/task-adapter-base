@@ -198,7 +198,7 @@ class IAdapter {
 
   /**
    * @async
-   * @function IAdapter#jobSpawn
+   * @function IAdapter#jobDeploy
    * @param {JobDefinition} jobObj
    * @description Formuate the commands to spawn
    * @return {RunningJob} a runningJob object that at least contains the jobEmitter that emits 'finished' or 'error'
