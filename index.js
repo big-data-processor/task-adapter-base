@@ -675,6 +675,7 @@ class BdpTaskAdapter extends IAdapter {
       jobObj.proxy = await this.determineJobProxy(jobObj);
       jobObj.proxy = jobObj.proxy || null;
       this.#_handleProxy(jobId, jobObj.proxy);
+      await this.#_writeJobLogs();
     })().catch(err => {
       console.log(err);
       process.stderr.write(`[Task Adapter] Failed to run the determineJobProxy function to get the proxy object. Unreigster the proxy.`);
@@ -1095,6 +1096,7 @@ class BdpTaskAdapter extends IAdapter {
           jobObj.proxy = await this.determineJobProxy(jobObj);
           jobObj.proxy = jobObj.proxy || null;
           this.#_handleProxy(jobId, jobObj.proxy);
+          await this.#_writeJobLogs();
         })().catch(err => {
           console.log(err);
           process.stderr.write(`[Task Adapter] Failed to run the determineJobProxy function to get the proxy object.`);
