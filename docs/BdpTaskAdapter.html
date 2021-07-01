@@ -646,7 +646,7 @@ You may use it to prevent extra waiting in while loops.</p>
 
     
 
-    <h4 class="name" id="emitJobStatus"><span class="type-signature">(async) </span>emitJobStatus<span class="signature">(jobId, code, signal)</span><span class="type-signature"></span></h4>
+    <h4 class="name" id="emitJobStatus"><span class="type-signature">(async) </span>emitJobStatus<span class="signature">(jobId, exitCode, signal)</span><span class="type-signature"></span></h4>
 
     
 
@@ -760,7 +760,7 @@ Note that calling this function does not stop the job process. This function onl
 
         <tr>
             
-                <td class="name"><code>code</code></td>
+                <td class="name"><code>exitCode</code></td>
             
 
             <td class="type">
@@ -841,7 +841,7 @@ Note that calling this function does not stop the job process. This function onl
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="index.js.html">index.js</a>, <a href="index.js.html#line509">line 509</a>
+        <a href="index.js.html">index.js</a>, <a href="index.js.html#line511">line 511</a>
     </li></ul></dd>
     
 
@@ -950,7 +950,7 @@ Note that calling this function does not stop the job process. This function onl
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="index.js.html">index.js</a>, <a href="index.js.html#line499">line 499</a>
+        <a href="index.js.html">index.js</a>, <a href="index.js.html#line501">line 501</a>
     </li></ul></dd>
     
 
@@ -1108,7 +1108,7 @@ Note that calling this function does not stop the job process. This function onl
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="index.js.html">index.js</a>, <a href="index.js.html#line1287">line 1287</a>
+        <a href="index.js.html">index.js</a>, <a href="index.js.html#line1294">line 1294</a>
     </li></ul></dd>
     
 
@@ -1217,7 +1217,7 @@ Note that calling this function does not stop the job process. This function onl
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="index.js.html">index.js</a>, <a href="index.js.html#line711">line 711</a>
+        <a href="index.js.html">index.js</a>, <a href="index.js.html#line715">line 715</a>
     </li></ul></dd>
     
 
@@ -1396,7 +1396,7 @@ This function basically parses the recipe file (in yaml format) and overrides th
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="index.js.html">index.js</a>, <a href="index.js.html#line758">line 758</a>
+        <a href="index.js.html">index.js</a>, <a href="index.js.html#line762">line 762</a>
     </li></ul></dd>
     
 
@@ -1505,7 +1505,7 @@ This function basically parses the recipe file (in yaml format) and overrides th
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="index.js.html">index.js</a>, <a href="index.js.html#line858">line 858</a>
+        <a href="index.js.html">index.js</a>, <a href="index.js.html#line862">line 862</a>
     </li></ul></dd>
     
 
@@ -1774,7 +1774,7 @@ If finished/exited jobs detected, emit finish/error event on the this.runningJob
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="index.js.html">index.js</a>, <a href="index.js.html#line582">line 582</a>
+        <a href="index.js.html">index.js</a>, <a href="index.js.html#line583">line 583</a>
     </li></ul></dd>
     
 
@@ -1934,7 +1934,7 @@ This function stores the resulting stdout/stderr files and updates the status of
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="index.js.html">index.js</a>, <a href="index.js.html#line513">line 513</a>
+        <a href="index.js.html">index.js</a>, <a href="index.js.html#line515">line 515</a>
     </li></ul></dd>
     
 
@@ -2094,7 +2094,7 @@ The function gets the remaining stdout/stderr messages, cleans up the streaming 
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="index.js.html">index.js</a>, <a href="index.js.html#line1012">line 1012</a>
+        <a href="index.js.html">index.js</a>, <a href="index.js.html#line1016">line 1016</a>
     </li></ul></dd>
     
 
@@ -2182,7 +2182,7 @@ If the job is finished, then it is skipped. This is used for pipeline resuming i
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="index.js.html">index.js</a>, <a href="index.js.html#line913">line 913</a>
+        <a href="index.js.html">index.js</a>, <a href="index.js.html#line917">line 917</a>
     </li></ul></dd>
     
 
@@ -2446,7 +2446,7 @@ This function is used to print job progress in a batch task to stdout and stderr
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="index.js.html">index.js</a>, <a href="index.js.html#line1062">line 1062</a>
+        <a href="index.js.html">index.js</a>, <a href="index.js.html#line1066">line 1066</a>
     </li></ul></dd>
     
 
@@ -2536,7 +2536,7 @@ Then, the adapter can see if there is a need to re-submit jobs.</p>
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="index.js.html">index.js</a>, <a href="index.js.html#line612">line 612</a>
+        <a href="index.js.html">index.js</a>, <a href="index.js.html#line613">line 613</a>
     </li></ul></dd>
     
 
@@ -2694,7 +2694,7 @@ Then, the adapter can see if there is a need to re-submit jobs.</p>
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="index.js.html">index.js</a>, <a href="index.js.html#line1143">line 1143</a>
+        <a href="index.js.html">index.js</a>, <a href="index.js.html#line1150">line 1150</a>
     </li></ul></dd>
     
 
@@ -2940,7 +2940,7 @@ Then, the adapter can see if there is a need to re-submit jobs.</p>
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="index.js.html">index.js</a>, <a href="index.js.html#line1250">line 1250</a>
+        <a href="index.js.html">index.js</a>, <a href="index.js.html#line1257">line 1257</a>
     </li></ul></dd>
     
 
@@ -3076,7 +3076,7 @@ Then, the adapter can see if there is a need to re-submit jobs.</p>
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="index.js.html">index.js</a>, <a href="index.js.html#line950">line 950</a>
+        <a href="index.js.html">index.js</a>, <a href="index.js.html#line954">line 954</a>
     </li></ul></dd>
     
 
@@ -3959,7 +3959,7 @@ You may use it to prevent extra waiting in while loops.</p>
 
     
 
-    <h4 class="name" id="emitJobStatus"><span class="type-signature">(async) </span>emitJobStatus<span class="signature">(jobId, code, signal)</span><span class="type-signature"></span></h4>
+    <h4 class="name" id="emitJobStatus"><span class="type-signature">(async) </span>emitJobStatus<span class="signature">(jobId, exitCode, signal)</span><span class="type-signature"></span></h4>
 
     
 
@@ -4073,7 +4073,7 @@ Note that calling this function does not stop the job process. This function onl
 
         <tr>
             
-                <td class="name"><code>code</code></td>
+                <td class="name"><code>exitCode</code></td>
             
 
             <td class="type">
@@ -4154,7 +4154,7 @@ Note that calling this function does not stop the job process. This function onl
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="index.js.html">index.js</a>, <a href="index.js.html#line509">line 509</a>
+        <a href="index.js.html">index.js</a>, <a href="index.js.html#line511">line 511</a>
     </li></ul></dd>
     
 
@@ -4263,7 +4263,7 @@ Note that calling this function does not stop the job process. This function onl
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="index.js.html">index.js</a>, <a href="index.js.html#line499">line 499</a>
+        <a href="index.js.html">index.js</a>, <a href="index.js.html#line501">line 501</a>
     </li></ul></dd>
     
 
@@ -4421,7 +4421,7 @@ Note that calling this function does not stop the job process. This function onl
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="index.js.html">index.js</a>, <a href="index.js.html#line1287">line 1287</a>
+        <a href="index.js.html">index.js</a>, <a href="index.js.html#line1294">line 1294</a>
     </li></ul></dd>
     
 
@@ -4530,7 +4530,7 @@ Note that calling this function does not stop the job process. This function onl
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="index.js.html">index.js</a>, <a href="index.js.html#line711">line 711</a>
+        <a href="index.js.html">index.js</a>, <a href="index.js.html#line715">line 715</a>
     </li></ul></dd>
     
 
@@ -4709,7 +4709,7 @@ This function basically parses the recipe file (in yaml format) and overrides th
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="index.js.html">index.js</a>, <a href="index.js.html#line758">line 758</a>
+        <a href="index.js.html">index.js</a>, <a href="index.js.html#line762">line 762</a>
     </li></ul></dd>
     
 
@@ -4818,7 +4818,7 @@ This function basically parses the recipe file (in yaml format) and overrides th
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="index.js.html">index.js</a>, <a href="index.js.html#line858">line 858</a>
+        <a href="index.js.html">index.js</a>, <a href="index.js.html#line862">line 862</a>
     </li></ul></dd>
     
 
@@ -5087,7 +5087,7 @@ If finished/exited jobs detected, emit finish/error event on the this.runningJob
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="index.js.html">index.js</a>, <a href="index.js.html#line582">line 582</a>
+        <a href="index.js.html">index.js</a>, <a href="index.js.html#line583">line 583</a>
     </li></ul></dd>
     
 
@@ -5247,7 +5247,7 @@ This function stores the resulting stdout/stderr files and updates the status of
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="index.js.html">index.js</a>, <a href="index.js.html#line513">line 513</a>
+        <a href="index.js.html">index.js</a>, <a href="index.js.html#line515">line 515</a>
     </li></ul></dd>
     
 
@@ -5407,7 +5407,7 @@ The function gets the remaining stdout/stderr messages, cleans up the streaming 
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="index.js.html">index.js</a>, <a href="index.js.html#line1012">line 1012</a>
+        <a href="index.js.html">index.js</a>, <a href="index.js.html#line1016">line 1016</a>
     </li></ul></dd>
     
 
@@ -5495,7 +5495,7 @@ If the job is finished, then it is skipped. This is used for pipeline resuming i
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="index.js.html">index.js</a>, <a href="index.js.html#line913">line 913</a>
+        <a href="index.js.html">index.js</a>, <a href="index.js.html#line917">line 917</a>
     </li></ul></dd>
     
 
@@ -5759,7 +5759,7 @@ This function is used to print job progress in a batch task to stdout and stderr
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="index.js.html">index.js</a>, <a href="index.js.html#line1062">line 1062</a>
+        <a href="index.js.html">index.js</a>, <a href="index.js.html#line1066">line 1066</a>
     </li></ul></dd>
     
 
@@ -5849,7 +5849,7 @@ Then, the adapter can see if there is a need to re-submit jobs.</p>
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="index.js.html">index.js</a>, <a href="index.js.html#line612">line 612</a>
+        <a href="index.js.html">index.js</a>, <a href="index.js.html#line613">line 613</a>
     </li></ul></dd>
     
 
@@ -6007,7 +6007,7 @@ Then, the adapter can see if there is a need to re-submit jobs.</p>
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="index.js.html">index.js</a>, <a href="index.js.html#line1143">line 1143</a>
+        <a href="index.js.html">index.js</a>, <a href="index.js.html#line1150">line 1150</a>
     </li></ul></dd>
     
 
@@ -6253,7 +6253,7 @@ Then, the adapter can see if there is a need to re-submit jobs.</p>
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="index.js.html">index.js</a>, <a href="index.js.html#line1250">line 1250</a>
+        <a href="index.js.html">index.js</a>, <a href="index.js.html#line1257">line 1257</a>
     </li></ul></dd>
     
 
@@ -6389,7 +6389,7 @@ Then, the adapter can see if there is a need to re-submit jobs.</p>
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="index.js.html">index.js</a>, <a href="index.js.html#line950">line 950</a>
+        <a href="index.js.html">index.js</a>, <a href="index.js.html#line954">line 954</a>
     </li></ul></dd>
     
 
@@ -6633,7 +6633,7 @@ Then, the adapter can see if there is a need to re-submit jobs.</p>
 <br class="clear">
 
 <footer>
-    Documentation generated by <a href="https://github.com/jsdoc3/jsdoc">JSDoc 3.6.7</a> on Tue Jun 15 2021 14:49:18 GMT+0800 (台北標準時間) using the <a href="https://github.com/clenemt/docdash">docdash</a> theme.
+    Documentation generated by <a href="https://github.com/jsdoc3/jsdoc">JSDoc 3.6.7</a> on Thu Jul 01 2021 21:13:38 GMT+0800 (台北標準時間) using the <a href="https://github.com/clenemt/docdash">docdash</a> theme.
 </footer>
 
 <script>prettyPrint();</script>
