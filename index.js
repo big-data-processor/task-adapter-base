@@ -1196,7 +1196,7 @@ class BdpTaskAdapter extends IAdapter {
                 process.stderr.write(`[${new Date().toString()}] Fetch job status...` + "\n");
                 await this.detectJobStatus();
                 if (err !== "SIGINT") {
-                  const status = await this.#_waitingJobStatus(125000, true);
+                  const status = await this.#_waitingJobStatus(1200000, true);
                   if (status === 'timeout') {
                     process.stderr.write(`[${new Date().toString()}] Fetching timeout. ` + "\n");
                   } else {
@@ -1263,7 +1263,7 @@ class BdpTaskAdapter extends IAdapter {
    */
   async #_waitingJobStatus(timeout, makeEnding) {
     let isTimeout = false, isAllResolved = false;
-    const theTimeout = timeout || 120000;
+    const theTimeout = timeout || 1200000;
     setTimeout(() => isTimeout = true, theTimeout);
     while(!isTimeout && !isAllResolved) {
       const jobIds = Object.keys(this.#jobStore);
