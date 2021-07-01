@@ -465,23 +465,25 @@ class BdpTaskAdapter extends IAdapter {
    * @async
    * @funciton BdpTaskAdapter#emitJobStatus
    * @param {*} jobId The job ID.
-   * @param {*} code The job exit code 
+   * @param {*} exitCode The job exit code 
    * @param {*} signal (optional) The job exit signal.
    * @description This function emits the 'finish' event when the job exit code is 0 or the 'error' event when else.
    * Note that calling this function does not stop the job process. This function only notify the adapter that the job is finished.
    */
 
-  async emitJobStatus(jobId, code, signal) {
+  async emitJobStatus(jobId, exitCode, signal) {
     const runningJob = this.runningJobs.get(jobId);
     if (!runningJob) { return false; }
+    if (runningJob.isEmitted) { return false; }
     const jobEmitter = runningJob.jobEmitter;
     let resolved = false;
     while (!resolved) {
       await sleep(500);
       try {
-        const state = code == 0 ? 'finish' : 'error';
+        const state = exitCode == 0 ? 'finish' : 'error';
         if (jobEmitter.listenerCount(state) >= 1) {
-          jobEmitter.emit(state, code, signal);
+          runningJob.isEmitted = {state, exitCode, signal};
+          jobEmitter.emit(state, exitCode, signal);
           resolved = true;
         }
       } catch(e) {console.log(e)};
@@ -519,7 +521,7 @@ class BdpTaskAdapter extends IAdapter {
    * @description This internal function will be called right after a job has exited (finished or errored) and before the `jobExitCallback` function.
    * The function gets the remaining stdout/stderr messages, cleans up the streaming resources and unregisters the proxy.
    */
-  async #_jobBeforeExitCallback(jobId, fileHandler) {
+  async #_jobBeforeExitCallback(jobId, fileHandler, runtimeStdoe) {
     /**
      * TODO: 
      * For pipe mode: prepare the stdoutFS and stderrFS
@@ -530,8 +532,8 @@ class BdpTaskAdapter extends IAdapter {
       this.runningJobs.get(jobId).jobEmitter.removeAllListeners("error");
     }
     const jobObj = this.getJobById(jobId);
-    const runtimeStdOut = jobObj.stdout;
-    const runtimeStdErr = jobObj.stderr;
+    const runtimeStdOut = runtimeStdoe.stdout;
+    const runtimeStdErr = runtimeStdoe.stderr;
     const taskOption = jobObj.option;
     const stdoeMode = this.options.stdoeMode;
     const currentDelay = this.concurrencyDelayCount;
@@ -563,10 +565,9 @@ class BdpTaskAdapter extends IAdapter {
       await fse.ensureFile(jobObj[stdoe]);
       let trialNumber = 1, runtimeStdoeExists = await fse.pathExists(runtimeStdoe[stdoe]);
       while(!runtimeStdoeExists && trialNumber <= 300) {
-        await sleep(2000);
-        runtimeStdoeExists = await fse.pathExists(runtimeStdoe[stdoe]);
-        if (runtimeStdoeExists) { break; }
         trialNumber ++;
+        await sleep(2000);
+        runtimeStdoeExists = await fse.pathExists(runtimeStdoe[stdoe]); 
       }
       if (runtimeStdoeExists) {
         await fse.move(runtimeStdoe[stdoe], jobObj[stdoe], { overwrite: true });
@@ -684,16 +685,18 @@ class BdpTaskAdapter extends IAdapter {
     });
     return new Promise((resolve, reject) => {
       this.runningJobs.get(jobId).jobEmitter.on("finish", (exitCode, signal) => {
+        this.runningJobs.get(jobId).isEmitted = {state: 'finish', exitCode, signal};
         (async () => {
-          await this.#_jobBeforeExitCallback(jobId, fileHandler);
+          await this.#_jobBeforeExitCallback(jobId, fileHandler, runtimeStdoe);
           const exitObj = await this.jobExitCallback(jobObj, exitCode, signal);
           await this.#_jobAfterExitCallback(jobId, exitObj, runtimeStdoe);
           return exitObj.exitCode == "0" ? resolve(0) : (stopOnError ? reject(exitObj.exitCode) : resolve(exitObj.exitCode));
         })().catch(err => reject(err));
       });
       this.runningJobs.get(jobId).jobEmitter.on("error", (exitCode, signal) => {
+        this.runningJobs.get(jobId).isEmitted = {state: 'error', exitCode, signal};
         (async () => {
-          await this.#_jobBeforeExitCallback(jobId, fileHandler);
+          await this.#_jobBeforeExitCallback(jobId, fileHandler, runtimeStdoe);
           const exitObj = await this.jobExitCallback(jobObj, exitCode, signal);
           await this.#_jobAfterExitCallback(jobId, exitObj, runtimeStdoe);
           if (this.options.retryMode === 'eager') {
@@ -1114,16 +1117,18 @@ class BdpTaskAdapter extends IAdapter {
         this.queue.push(() => {
           return new Promise((resolve, reject) => {
             this.runningJobs.get(jobId).jobEmitter.on("finish", (exitCode, signal) => {
+              this.runningJobs.get(jobId).isEmitted = {state: 'finish', exitCode, signal};
               (async () => {
-                await this.#_jobBeforeExitCallback(jobId, fileHandler);
+                await this.#_jobBeforeExitCallback(jobId, fileHandler, runtimeStdoe);
                 const exitObj = await this.jobExitCallback(jobObj, exitCode, signal);
                 await this.#_jobAfterExitCallback(jobId, exitObj, runtimeStdoe);
                 return exitObj.exitCode == 0 ? resolve(0) : (stopOnError ? reject(exitObj.exitCode) : resolve(exitObj.exitCode));
               })().catch(err => reject(err));
             });
             this.runningJobs.get(jobId).jobEmitter.on("error", (exitCode, signal) => {
+              this.runningJobs.get(jobId).isEmitted = {state: 'error', exitCode, signal};
               (async () => {
-                await this.#_jobBeforeExitCallback(jobId, fileHandler);
+                await this.#_jobBeforeExitCallback(jobId, fileHandler, runtimeStdoe);
                 const exitObj = await this.jobExitCallback(jobObj, exitCode, signal);
                 await this.#_jobAfterExitCallback(jobId, exitObj, runtimeStdoe);
                 if (this.options.retryMode === 'eager') {
@@ -1266,12 +1271,12 @@ class BdpTaskAdapter extends IAdapter {
       await this.detectJobStatus();
       for (let i = 0; i < jobIds.length; i ++) {
         const jobObj = this.#jobStore[jobIds[i]];
-        if (jobObj.exitCode === null || jobObj.exitCode === undefined) {
+        if (jobObj.exitCode === null || jobObj.exitCode === undefined || this.runningJobs.has(jobIds[i])) {
           isAllResolved = false;
+          break;
         }
-        break;
       }
-      await sleep(1000);
+      await sleep(2000);
     }
     if (isTimeout && makeEnding) {
       const jobIds = Object.keys(this.#jobStore);
