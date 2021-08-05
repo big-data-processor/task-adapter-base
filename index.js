@@ -1271,7 +1271,7 @@ class BdpTaskAdapter extends IAdapter {
       await this.detectJobStatus();
       for (let i = 0; i < jobIds.length; i ++) {
         const jobObj = this.#jobStore[jobIds[i]];
-        if (jobObj.exitCode === null || jobObj.exitCode === undefined || this.runningJobs.has(jobIds[i])) {
+        if (jobObj.start && (jobObj.exitCode === null || jobObj.exitCode === undefined || this.runningJobs.has(jobIds[i]))) {
           isAllResolved = false;
           break;
         }
