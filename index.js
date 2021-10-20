@@ -1084,7 +1084,7 @@ class BdpTaskAdapter extends IAdapter {
         const stopOnError = this.options.stopOnError;
         if (stdoeMode !== 'watch') {continue;}
         this.runningJobs.set(jobId, {
-          jobId: jobObj.pid, // The id that generted by the task executor (e.g. pid, the jobId from PBS, ...)
+          runningJobId: jobObj.pid, // The id that generted by the task executor (e.g. pid, the jobId from PBS, ...)
           stdoutStream: null, // The remote job does not use the pipe mode to stream the stdout/stderr stream.
           stderrStream: null,
           jobEmitter: new EventEmitter(),
