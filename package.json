@@ -1,6 +1,6 @@
 {
   "name": "@big-data-processor/task-adapter-base",
-  "version": "0.9.16",
+  "version": "0.9.17",
   "description": "",
   "main": "index.js",
   "scripts": {
@@ -11,7 +11,7 @@
   "license": "MIT",
   "dependencies": {
     "@big-data-processor/default-filters": "^0.8.8",
-    "@big-data-processor/utilities": "^0.8.9",
+    "@big-data-processor/utilities": "^0.9.0",
     "byte-converter": "^0.1.4",
     "chokidar": "^3.5.3",
     "dashify": "^2.0.0",
