@@ -1,6 +1,6 @@
 {
   "name": "@big-data-processor/task-adapter-base",
-  "version": "0.9.17",
+  "version": "0.9.17-patch.1",
   "description": "",
   "main": "index.js",
   "scripts": {
@@ -10,7 +10,7 @@
   "author": "Chi Yang",
   "license": "MIT",
   "dependencies": {
-    "@big-data-processor/default-filters": "^0.8.8",
+    "@big-data-processor/default-filters": "^0.9.0",
     "@big-data-processor/utilities": "^0.9.0",
     "byte-converter": "^0.1.4",
     "chokidar": "^3.5.3",
