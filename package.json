@@ -1,6 +1,6 @@
 {
   "name": "@big-data-processor/task-adapter-base",
-  "version": "0.9.17-patch.1",
+  "version": "0.9.18",
   "description": "",
   "main": "index.js",
   "scripts": {
