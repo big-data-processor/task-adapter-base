@@ -536,7 +536,7 @@ class BdpTaskAdapter extends IAdapter {
     const runtimeStdErr = runtimeStdoe.stderr;
     const taskOption = jobObj.option;
     const stdoeMode = this.options.stdoeMode;
-    sleep(this.delayInterval*3).then(() => this.concurrencyDelayCount = 0);
+    sleep(this.delayInterval).then(() => this.concurrencyDelayCount = 0);
     if (jobObj.proxy) {
       this.#_handleProxy(jobId);
     }
