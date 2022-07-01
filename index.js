@@ -649,28 +649,38 @@ class BdpTaskAdapter extends IAdapter {
     const stdoeMode = this.options.stdoeMode;
     const fileHandler = {stdoutFS: null, stderrFS: null, stdoeWatcher: null, readFileSizes: {stdout: 0, stderr: 0}};
     const runtimeStdoe = {stdout: jobObj.stdout, stderr: jobObj.stderr};
-    let stdoePromise = Promise.resolve();
     if (stdoeMode === "pipe") {
       // In this mode, we directly pipe the stdout/stderr to files (and process.stdout/stderr if not batch mode) 
-      stdoePromise = __pipeStdoeFiles(runtimeStdoe, runningJob, jobObj.option.batch).then(({stdoutFS, stderrFS}) => {
-        fileHandler.stdoutFS = stdoutFS;
-        fileHandler.stderrFS = stderrFS;
-      });
+      const {stdoutFS, stderrFS} = await __pipeStdoeFiles(runtimeStdoe, runningJob, jobObj.option.batch);
+      fileHandler.stdoutFS = stdoutFS;
+      fileHandler.stderrFS = stderrFS;
     } else if (stdoeMode === "watch" && !jobOption.batch) {
       // In the watch mode, we watch the runtimeStdOut/runtimeStdErr files (mainly for remote jobs)
-      stdoePromise = __watchStdoeFiles(runtimeStdoe, jobObj.option.batch).then(({stdoeWatcher, readFileSizes}) => {
-        fileHandler.stdoeWatcher = stdoeWatcher;
-        fileHandler.readFileSizes = readFileSizes;
-      });
+      const {stdoeWatcher, readFileSizes} = await __watchStdoeFiles(runtimeStdoe, jobObj.option.batch);
+      fileHandler.stdoeWatcher = stdoeWatcher;
+      fileHandler.readFileSizes = readFileSizes;
     }
-    stdoePromise.then(() => {
-      let msg = `[${new Date(startTime).toString()}] Start the job ${jobObj.jobId}.` + "\n";
-      process.stderr.write(msg);
-      if (stdoeMode === "pipe") { fileHandler.stderrFS.write(msg); }
-      msg = `[command] ${jobObj.command}` + "\n";
-      process.stderr.write(msg);
-      if (stdoeMode === "pipe") { fileHandler.stderrFS.write(msg); }
-    }).catch(console.log);
+    let msg = `[${new Date(startTime).toString()}] Start the job ${jobObj.jobId}.` + "\n";
+    process.stderr.write(msg);
+    if (stdoeMode === "pipe") { fileHandler.stderrFS.write(msg); }
+    msg = `[command] ${jobObj.command}` + "\n";
+    process.stderr.write(msg);
+    if (stdoeMode === "pipe") { fileHandler.stderrFS.write(msg); }
+    if (this.options.batch) {
+      const status = await this.#_checkStatus();
+      this.#_printStatus(status);
+    }
+    (async () => {
+      jobObj.proxy = await this.determineJobProxy(jobObj);
+      jobObj.proxy = jobObj.proxy || null;
+      this.#_handleProxy(jobId, jobObj.proxy);
+      await this.#_writeJobLogs();
+    })().catch(err => {
+      console.log(err);
+      process.stderr.write(`[Task Adapter] Failed to run the determineJobProxy function to get the proxy object. Unreigster the proxy.`);
+      this.#_handleProxy(jobId);
+      jobObj.proxy = null;
+    });
     return new Promise((resolve, reject) => {
       this.runningJobs.get(jobId).jobEmitter.on("finish", (exitCode, signal) => {
         this.concurrencyDelayCount = 0;
@@ -699,20 +709,6 @@ class BdpTaskAdapter extends IAdapter {
           return stopOnError ? reject(exitObj.exitCode) : resolve(exitObj.exitCode);
         })().catch(err => reject(err));
       });
-      (async () => {
-        jobObj.proxy = await this.determineJobProxy(jobObj);
-        jobObj.proxy = jobObj.proxy || null;
-        this.#_handleProxy(jobId, jobObj.proxy);
-        await this.#_writeJobLogs();
-      })().catch(err => {
-        console.log(err);
-        process.stderr.write(`[Task Adapter] Failed to run the determineJobProxy function to get the proxy object. Unreigster the proxy.`);
-        this.#_handleProxy(jobId);
-        jobObj.proxy = null;
-      });
-      if (this.options.batch) {
-        this.#_checkStatus().then(status => this.#_printStatus(status));
-      }
       sleep(this.delayInterval).finally(() => {
         if (this.concurrencyDelayCount > 0) this.concurrencyDelayCount --;
       });
