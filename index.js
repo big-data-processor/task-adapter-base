@@ -440,7 +440,9 @@ class BdpTaskAdapter extends IAdapter {
    * @description This private function sends messages to bdp-server with process.send.
    */
   #_sendMsgToBdpClient(action, content) {
-    process.send({source: "bdp-adapter", action, content});
+    if (typeof process.send === 'function') {
+      process.send({source: "bdp-adapter", action, content});
+    }
   }
 
   /**
@@ -1370,6 +1372,9 @@ class BdpTaskAdapter extends IAdapter {
       getOptions: () => {
         return this.options;
       },
+      beforeStart: async () => {
+        await this.beforeStart();
+      },
       execute: async tasks => {
         try {
           isStopping = false;
@@ -1378,7 +1383,6 @@ class BdpTaskAdapter extends IAdapter {
           if (Object.keys(this.#jobStore).length <= 0) {throw "No task to proceed.\n";}
           await this.#_writeJobLogs();
           await this.#_resumeJobs();
-          await this.beforeStart();
           await this.#_writeJobLogs();
           let success = false;
           let retry = 0;
@@ -1403,8 +1407,6 @@ class BdpTaskAdapter extends IAdapter {
             }
           }
           await this.#_writeJobLogs();
-          await this.beforeExit(); // This is used to clean the resources after finishing all jobs
-          process.stderr.write(`[${new Date().toString()}] Task execution finished.` + "\n");
         } catch(e) {
           if (e === 'SIGTERM') {
             try {
@@ -1418,6 +1420,10 @@ class BdpTaskAdapter extends IAdapter {
           process.stderr.write(`[${new Date().toString()}] Task execution finished with ${e}.` + "\n");
           throw e;
         }
+      },
+      beforeExit: async () => {
+        await this.beforeExit(); // This is used to clean the resources after finishing all jobs
+        process.stderr.write(`[${new Date().toString()}] Task execution finished.` + "\n");
       }
     };
   }
